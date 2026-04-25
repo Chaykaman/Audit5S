@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/startAuditFragment">
+
+    <fragment
+        android:id="@+id/startAuditFragment"
+        android:name="com.sys.audit5s.ui.audit.StartAuditFragment"
+        android:label="Начало аудита" />
+
+    <fragment
+        android:id="@+id/categoryFragment"
+        android:name="com.sys.audit5s.ui.category.CategoryFragment"
+        android:label="Аудит" />
+
+    <fragment
+        android:id="@+id/remarkFragment"
+        android:name="com.sys.audit5s.ui.remark.RemarkFragment"
+        android:label="Замечание" />
+
+    <fragment
+        android:id="@+id/summaryFragment"
+        android:name="com.sys.audit5s.ui.summary.SummaryFragment"
+        android:label="Итоги аудита" />
+
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.sys.audit5s.ui.history.HistoryFragment"
+        android:label="История аудитов" />
+
+    <fragment
+        android:id="@+id/remarkDetailFragment"
+        android:name="com.sys.audit5s.ui.remark.RemarkDetailFragment"
+        android:label="Замечание" />
+
+</navigation>
