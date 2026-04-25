@@ -43,6 +43,9 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
     private fun setupToolbar(category: String) {
         binding.toolbar.title = "Категория $category"
+        binding.toolbar.navigationIcon?.setTint(
+            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.white)
+        )
         binding.toolbar.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
@@ -160,7 +163,6 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             val currentIndex = categories.indexOf(category)
 
             if (score < passing) {
-                // Показываем диалог с выбором
                 androidx.appcompat.app.AlertDialog.Builder(requireContext())
                     .setTitle("Недостаточно баллов")
                     .setMessage(
@@ -169,10 +171,12 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                                 "или завершить аудит с текущим результатом."
                     )
                     .setPositiveButton("Завершить аудит") { _, _ ->
-                        findNavController().navigate(
-                            R.id.summaryFragment,
-                            bundleOf("auditId" to auditId)
-                        )
+                        viewModel.saveAllDefaultScores {
+                            findNavController().navigate(
+                                R.id.summaryFragment,
+                                bundleOf("auditId" to auditId)
+                            )
+                        }
                     }
                     .setNegativeButton("Вернуться к вопросам") { dialog, _ ->
                         dialog.dismiss()
@@ -181,18 +185,20 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 return@setOnClickListener
             }
 
-            val nextIndex = currentIndex + 1
-            if (nextIndex < categories.size) {
-                val bundle = bundleOf(
-                    "auditId" to auditId,
-                    "category" to categories[nextIndex]
-                )
-                findNavController().navigate(R.id.categoryFragment, bundle)
-            } else {
-                findNavController().navigate(
-                    R.id.summaryFragment,
-                    bundleOf("auditId" to auditId)
-                )
+            viewModel.saveAllDefaultScores {
+                val nextIndex = currentIndex + 1
+                if (nextIndex < categories.size) {
+                    val bundle = bundleOf(
+                        "auditId" to auditId,
+                        "category" to categories[nextIndex]
+                    )
+                    findNavController().navigate(R.id.categoryFragment, bundle)
+                } else {
+                    findNavController().navigate(
+                        R.id.summaryFragment,
+                        bundleOf("auditId" to auditId)
+                    )
+                }
             }
         }
     }
