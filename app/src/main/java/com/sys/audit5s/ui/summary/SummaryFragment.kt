@@ -39,7 +39,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
     private fun setupToolbar() {
         binding.toolbar.setNavigationIcon(R.drawable.ic_back)
         binding.toolbar.navigationIcon?.setTint(
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.white)
+            ContextCompat.getColor(requireContext(), R.color.white)
         )
         binding.toolbar.setNavigationOnClickListener {
             findNavController().popBackStack()
@@ -67,26 +67,22 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 binding.tvSection.text = audit.sectionName
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.totalScore.collect { score ->
                 binding.tvTotalScore.text = score.toString()
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.finalCategory.collect { category ->
                 binding.tvFinalCategory.text = "Категория $category"
                 binding.tvMaxScore.text = "итоговый результат"
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.categoryResults.collect { results ->
                 buildCategoryChips(results)
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.remarks.collect { remarks ->
                 remarkAdapter.submitList(remarks)
@@ -103,10 +99,12 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 text = result.category
                 textSize = 12f
                 setPadding(16, 8, 16, 8)
-                setTextColor(ContextCompat.getColor(
-                    requireContext(),
-                    if (result.isPassed) R.color.white else R.color.text_secondary
-                ))
+                setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        if (result.isPassed) R.color.white else R.color.text_secondary
+                    )
+                )
                 background = ContextCompat.getDrawable(
                     requireContext(),
                     if (result.isPassed) R.drawable.bg_chip_passed

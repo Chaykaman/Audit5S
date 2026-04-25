@@ -1,8 +1,10 @@
 package com.sys.audit5s.ui.remark
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -50,12 +52,10 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
             viewModel.state.collect { state ->
                 state ?: return@collect
 
-                // Вопрос
                 binding.tvCategory.text =
                     "Категория ${state.category} · Вопрос ${state.questionNumber}"
                 binding.tvQuestionText.text = state.questionText
 
-                // Цвет оценки
                 val colorRes = when (state.score) {
                     0 -> R.color.score_0
                     1 -> R.color.score_1
@@ -66,13 +66,11 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                 binding.tvScore.backgroundTintList =
                     ContextCompat.getColorStateList(requireContext(), colorRes)
 
-                // Детали замечания
                 binding.tvDescription.text = state.remark.description
                 binding.tvExecutor.text = state.remark.executorName
                 binding.tvDeadline.text = state.remark.deadlineDate
                 binding.tvActualDate.text = state.remark.actualDate ?: "—"
 
-                // Кнопка выполнено
                 if (state.remark.actualDate != null) {
                     binding.btnMarkDone.text = "Выполнено: ${state.remark.actualDate}"
                     binding.btnMarkDone.isEnabled = false
@@ -83,17 +81,22 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                     binding.btnMarkDone.alpha = 1.0f
                 }
 
-                // Фото
                 if (state.photos.isNotEmpty()) {
                     binding.cardPhotos.visibility = View.VISIBLE
                     binding.photoContainer.removeAllViews()
+                    val sizePx = (90 * resources.displayMetrics.density).toInt()
                     state.photos.forEach { photo ->
                         val imageView = ImageView(requireContext()).apply {
                             layoutParams = android.widget.LinearLayout.LayoutParams(
-                                120, 120
-                            ).apply { setMargins(0, 0, 8, 0) }
+                                sizePx, sizePx
+                            ).apply { setMargins(0, 0, 12, 0) }
                             scaleType = ImageView.ScaleType.CENTER_CROP
+                            clipToOutline = true
+                            background = ContextCompat.getDrawable(
+                                requireContext(), R.drawable.bg_photo_preview
+                            )
                             setImageURI(android.net.Uri.parse(photo.photoUri))
+                            setOnClickListener { showFullScreenPhoto(photo.photoUri) }
                         }
                         binding.photoContainer.addView(imageView)
                     }
@@ -102,6 +105,24 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                 }
             }
         }
+    }
+
+    private fun showFullScreenPhoto(path: String) {
+        val dialog = Dialog(
+            requireContext(),
+            android.R.style.Theme_Black_NoTitleBar_Fullscreen
+        )
+        val imageView = ImageView(requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageURI(android.net.Uri.parse(path))
+            setOnClickListener { dialog.dismiss() }
+        }
+        dialog.setContentView(imageView)
+        dialog.show()
     }
 
     private fun setupButtons() {

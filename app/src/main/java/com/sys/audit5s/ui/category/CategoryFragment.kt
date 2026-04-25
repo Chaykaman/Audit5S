@@ -1,9 +1,15 @@
 package com.sys.audit5s.ui.category
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -14,8 +20,10 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.sys.audit5s.R
 import com.sys.audit5s.databinding.FragmentCategoryBinding
 import com.sys.audit5s.databinding.SheetQuestionDetailBinding
+import com.sys.audit5s.util.PhotoManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 
 @AndroidEntryPoint
@@ -26,6 +34,40 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
     private val viewModel: CategoryViewModel by viewModels()
     private lateinit var adapter: QuestionAdapter
 
+    private var currentPhotoFile: File? = null
+    private var currentPhotoUris = mutableListOf<String>()
+    private var currentSheetBinding: SheetQuestionDetailBinding? = null
+
+    private val requestCameraPermission = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) launchCamera()
+        else Toast.makeText(requireContext(), "Нет доступа к камере", Toast.LENGTH_SHORT).show()
+    }
+
+    private val takePictureLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            currentPhotoFile?.let { file ->
+                currentPhotoUris.add(file.absolutePath)
+                updatePhotoPreview(currentSheetBinding)
+            }
+        }
+    }
+
+    private val pickPhotoLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val path = PhotoManager.copyPhotoToAppStorage(requireContext(), it)
+            if (path != null) {
+                currentPhotoUris.add(path)
+                updatePhotoPreview(currentSheetBinding)
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentCategoryBinding.bind(view)
@@ -34,17 +76,16 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         val category = arguments?.getString("category") ?: "1С"
 
         viewModel.init(auditId, category)
-
         setupToolbar(category)
         setupRecyclerView()
-        setupObservers(category)
+        setupObservers()
         setupFinishButton(auditId, category)
     }
 
     private fun setupToolbar(category: String) {
         binding.toolbar.title = "Категория $category"
         binding.toolbar.navigationIcon?.setTint(
-            androidx.core.content.ContextCompat.getColor(requireContext(), R.color.white)
+            ContextCompat.getColor(requireContext(), R.color.white)
         )
         binding.toolbar.setNavigationOnClickListener {
             findNavController().popBackStack()
@@ -59,13 +100,12 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         binding.rvQuestions.adapter = adapter
     }
 
-    private fun setupObservers(category: String) {
+    private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.questions.collect { questions ->
                 adapter.submitList(questions.toList())
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.totalScore.collect { score ->
                 val max = viewModel.getMaxScore()
@@ -84,6 +124,28 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         var selectedScore = questionState.score
         sheetBinding.tvQuestionText.text = questionState.question.text
         updateScoreButtons(sheetBinding, selectedScore)
+
+        currentPhotoUris = mutableListOf()
+        currentSheetBinding = sheetBinding
+        updatePhotoPreview(sheetBinding)
+
+        // Загружаем существующее замечание
+        viewLifecycleOwner.lifecycleScope.launch {
+            val existing = viewModel.getRemarkForQuestion(questionState.question.number)
+            if (existing != null) {
+                sheetBinding.etDeadline.setText(existing.deadlineDate)
+                sheetBinding.etExecutor.setText(existing.executorName)
+                sheetBinding.etDescription.setText(existing.description)
+                sheetBinding.remarkGroup.visibility = View.VISIBLE
+                val photos = viewModel.getPhotosForRemark(existing.id)
+                currentPhotoUris = photos.map { it.photoUri }.toMutableList()
+                updatePhotoPreview(sheetBinding)
+            }
+        }
+
+        sheetBinding.btnAddPhoto.setOnClickListener {
+            showPhotoOptions(sheetBinding)
+        }
 
         listOf(
             sheetBinding.btn0 to 0,
@@ -130,7 +192,8 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 }
                 viewModel.saveScore(
                     questionState.question.number,
-                    selectedScore, desc, deadline, executor
+                    selectedScore, desc, deadline, executor,
+                    currentPhotoUris.toList()
                 ) { dialog.dismiss() }
             } else {
                 viewModel.saveScore(
@@ -143,10 +206,78 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         dialog.show()
     }
 
-    private fun updateScoreButtons(
-        binding: SheetQuestionDetailBinding,
-        selected: Int
-    ) {
+    private fun launchCamera() {
+        val file = PhotoManager.createImageFile(requireContext())
+        currentPhotoFile = file
+        val uri = PhotoManager.getUriForFile(requireContext(), file)
+        takePictureLauncher.launch(uri)
+    }
+
+    private fun showPhotoOptions(sheetBinding: SheetQuestionDetailBinding) {
+        currentSheetBinding = sheetBinding
+        AlertDialog.Builder(requireContext())
+            .setTitle("Добавить фото")
+            .setItems(arrayOf("Сделать фото", "Выбрать из галереи")) { _, which ->
+                when (which) {
+                    0 -> {
+                        val permission = android.Manifest.permission.CAMERA
+                        if (ContextCompat.checkSelfPermission(requireContext(), permission)
+                            == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            launchCamera()
+                        } else {
+                            requestCameraPermission.launch(permission)
+                        }
+                    }
+                    1 -> pickPhotoLauncher.launch("image/*")
+                }
+            }
+            .show()
+    }
+
+    private fun updatePhotoPreview(sheetBinding: SheetQuestionDetailBinding?) {
+        sheetBinding ?: return
+        val container = sheetBinding.photoContainer
+        if (container.childCount > 1) {
+            container.removeViews(1, container.childCount - 1)
+        }
+        val sizePx = (90 * resources.displayMetrics.density).toInt()
+        currentPhotoUris.forEach { path ->
+            val imageView = ImageView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                    setMargins(0, 0, 12, 0)
+                }
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                clipToOutline = true
+                background = ContextCompat.getDrawable(
+                    requireContext(), R.drawable.bg_photo_preview
+                )
+                setImageURI(android.net.Uri.parse(path))
+                setOnClickListener { showFullScreenPhoto(path) }
+            }
+            container.addView(imageView)
+        }
+    }
+
+    private fun showFullScreenPhoto(path: String) {
+        val dialog = Dialog(
+            requireContext(),
+            android.R.style.Theme_Black_NoTitleBar_Fullscreen
+        )
+        val imageView = ImageView(requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageURI(android.net.Uri.parse(path))
+            setOnClickListener { dialog.dismiss() }
+        }
+        dialog.setContentView(imageView)
+        dialog.show()
+    }
+
+    private fun updateScoreButtons(binding: SheetQuestionDetailBinding, selected: Int) {
         listOf(binding.btn0, binding.btn1, binding.btn2, binding.btn3)
             .forEachIndexed { index, btn ->
                 btn.alpha = if (index == selected) 1.0f else 0.45f
@@ -163,7 +294,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             val currentIndex = categories.indexOf(category)
 
             if (score < passing) {
-                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                AlertDialog.Builder(requireContext())
                     .setTitle("Недостаточно баллов")
                     .setMessage(
                         "Набрано $score баллов из $passing необходимых.\n\n" +
@@ -178,9 +309,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                             )
                         }
                     }
-                    .setNegativeButton("Вернуться к вопросам") { dialog, _ ->
-                        dialog.dismiss()
-                    }
+                    .setNegativeButton("Вернуться к вопросам") { d, _ -> d.dismiss() }
                     .show()
                 return@setOnClickListener
             }
@@ -188,11 +317,13 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             viewModel.saveAllDefaultScores {
                 val nextIndex = currentIndex + 1
                 if (nextIndex < categories.size) {
-                    val bundle = bundleOf(
-                        "auditId" to auditId,
-                        "category" to categories[nextIndex]
+                    findNavController().navigate(
+                        R.id.categoryFragment,
+                        bundleOf(
+                            "auditId" to auditId,
+                            "category" to categories[nextIndex]
+                        )
                     )
-                    findNavController().navigate(R.id.categoryFragment, bundle)
                 } else {
                     findNavController().navigate(
                         R.id.summaryFragment,

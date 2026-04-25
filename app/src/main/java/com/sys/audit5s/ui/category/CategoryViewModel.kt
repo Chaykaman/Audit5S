@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sys.audit5s.data.db.entity.QuestionScoreEntity
 import com.sys.audit5s.data.db.entity.RemarkEntity
+import com.sys.audit5s.data.db.entity.RemarkPhotoEntity
 import com.sys.audit5s.data.repository.QuestionScoreRepository
 import com.sys.audit5s.data.repository.RemarkRepository
 import com.sys.audit5s.util.AuditQuestion
@@ -45,7 +46,6 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             val questionList = AuditQuestions.getByCategory(category)
             val savedScores = questionScoreRepository.getByCategory(auditId, category)
-
             val uiStates = questionList.map { question ->
                 val saved = savedScores.find { it.questionNumber == question.number }
                 QuestionUiState(
@@ -61,8 +61,7 @@ class CategoryViewModel @Inject constructor(
 
     fun saveAllDefaultScores(onDone: () -> Unit) {
         viewModelScope.launch {
-            val questions = _questions.value
-            questions.forEach { questionState ->
+            _questions.value.forEach { questionState ->
                 if (questionState.scoreEntity == null) {
                     questionScoreRepository.insert(
                         QuestionScoreEntity(
@@ -85,6 +84,7 @@ class CategoryViewModel @Inject constructor(
         remarkDescription: String = "",
         remarkDeadline: String = "",
         remarkExecutor: String = "",
+        photoUris: List<String> = emptyList(),
         onDone: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -93,9 +93,7 @@ class CategoryViewModel @Inject constructor(
             } ?: return@launch
 
             val scoreId = if (current.scoreEntity != null) {
-                questionScoreRepository.update(
-                    current.scoreEntity.copy(score = score)
-                )
+                questionScoreRepository.update(current.scoreEntity.copy(score = score))
                 current.scoreEntity.id
             } else {
                 questionScoreRepository.insert(
@@ -111,7 +109,7 @@ class CategoryViewModel @Inject constructor(
 
             if (score < 3 && remarkDescription.isNotBlank()) {
                 val existing = remarkRepository.getByQuestionScore(scoreId)
-                if (existing != null) {
+                val remarkId = if (existing != null) {
                     remarkRepository.update(
                         existing.copy(
                             description = remarkDescription,
@@ -119,6 +117,7 @@ class CategoryViewModel @Inject constructor(
                             executorName = remarkExecutor
                         )
                     )
+                    existing.id
                 } else {
                     remarkRepository.insert(
                         RemarkEntity(
@@ -130,6 +129,14 @@ class CategoryViewModel @Inject constructor(
                         )
                     )
                 }
+                photoUris.forEach { uri ->
+                    remarkRepository.insertPhoto(
+                        RemarkPhotoEntity(
+                            remarkId = remarkId,
+                            photoUri = uri
+                        )
+                    )
+                }
             }
 
             loadQuestions()
@@ -137,15 +144,22 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
+    suspend fun getRemarkForQuestion(questionNumber: Int): RemarkEntity? {
+        val scoreEntity = _questions.value
+            .find { it.question.number == questionNumber }
+            ?.scoreEntity ?: return null
+        return remarkRepository.getByQuestionScore(scoreEntity.id)
+    }
+
+    suspend fun getPhotosForRemark(remarkId: Long): List<RemarkPhotoEntity> =
+        remarkRepository.getPhotosByRemark(remarkId)
+
     private fun recalcTotal() {
         _totalScore.value = _questions.value.sumOf { it.score }
     }
 
     fun getMaxScore(): Int = AuditQuestions.getByCategory(category).size * 3
-
     fun getPassingScore(): Int = AuditQuestions.passingScore(category)
-
     fun getCurrentScore(): Int = _questions.value.sumOf { it.score }
-
     fun getCategory(): String = category
 }
