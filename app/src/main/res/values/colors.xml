@@ -1,5 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Основные цвета -->
+    <color name="primary">#004f9e</color>
+    <color name="primary_dark">#003d7a</color>
+    <color name="primary_light">#e8f4fd</color>
+    <color name="accent">#5cc4f2</color>
+
+    <!-- Фон -->
+    <color name="background">#F5F7FA</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Текст -->
+    <color name="text_primary">#000e1c</color>
+    <color name="text_secondary">#a3a8a5</color>
+
+    <!-- Оценки -->
+    <color name="score_0">#f44336</color>
+    <color name="score_1">#ff9800</color>
+    <color name="score_2">#5cc4f2</color>
+    <color name="score_3">#4caf50</color>
+
+    <!-- Навигация -->
+    <color name="nav_background">#FFFFFF</color>
+    <color name="nav_active">#004f9e</color>
+    <color name="nav_inactive">#a3a8a5</color>
+
+    <!-- Служебные -->
+    <color name="divider">#E0E0E0</color>
+    <color name="error">#f44336</color>
+    <color name="white">#FFFFFF</color>
 </resources>
