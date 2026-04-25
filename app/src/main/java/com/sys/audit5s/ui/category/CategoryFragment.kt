@@ -160,15 +160,24 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             val currentIndex = categories.indexOf(category)
 
             if (score < passing) {
-                Toast.makeText(
-                    requireContext(),
-                    "Набрано $score баллов. Недостаточно для перехода (нужно $passing). Аудит завершён.",
-                    Toast.LENGTH_LONG
-                ).show()
-                findNavController().navigate(
-                    R.id.summaryFragment,
-                    bundleOf("auditId" to auditId)
-                )
+                // Показываем диалог с выбором
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Недостаточно баллов")
+                    .setMessage(
+                        "Набрано $score баллов из $passing необходимых.\n\n" +
+                                "Вы можете вернуться и пересмотреть оценки, " +
+                                "или завершить аудит с текущим результатом."
+                    )
+                    .setPositiveButton("Завершить аудит") { _, _ ->
+                        findNavController().navigate(
+                            R.id.summaryFragment,
+                            bundleOf("auditId" to auditId)
+                        )
+                    }
+                    .setNegativeButton("Вернуться к вопросам") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .show()
                 return@setOnClickListener
             }
 

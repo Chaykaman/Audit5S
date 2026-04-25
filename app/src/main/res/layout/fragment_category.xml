@@ -68,7 +68,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        android:padding="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="80dp"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
         android:clipToPadding="false" />
 
     <com.google.android.material.button.MaterialButton
