@@ -29,7 +29,8 @@ class MainActivity : AppCompatActivity() {
             when (destination.id) {
                 R.id.categoryFragment,
                 R.id.remarkFragment,
-                R.id.remarkDetailFragment -> {
+                R.id.remarkDetailFragment,
+                R.id.summaryFragment-> {
                     binding.bottomNavigation.visibility = View.GONE
                 }
                 else -> {
