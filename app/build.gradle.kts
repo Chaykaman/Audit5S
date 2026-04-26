@@ -45,6 +45,12 @@ android {
 }
 
 dependencies {
+    // PDF
+    implementation(libs.itextpdf)
+
+    // Excel
+    implementation(libs.apache.poi)
+    implementation(libs.apache.poi.ooxml)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

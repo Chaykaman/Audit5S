@@ -16,8 +16,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
             android:title="Итоги аудита"
-            app:titleTextColor="@color/white"
-            app:navigationIconTint="@color/white"/>
+            app:titleTextColor="@color/white" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -275,7 +274,39 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Кнопка вернуться -->
+            <!-- Кнопки экспорта -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportPdf"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="Экспорт PDF"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/primary"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportExcel"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Экспорт Excel"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/score_3"
+                    app:cornerRadius="12dp" />
+
+            </LinearLayout>
+
+            <!-- Кнопка новый аудит -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNewAudit"
                 style="@style/Button.Primary"

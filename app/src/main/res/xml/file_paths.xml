@@ -3,4 +3,7 @@
     <files-path
         name="audit_photos"
         path="photos/" />
+    <external-files-path
+        name="audit_exports"
+        path="." />
 </paths>

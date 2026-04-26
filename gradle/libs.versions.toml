@@ -15,8 +15,13 @@ coil = "2.7.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+itextpdf = "5.5.13.3"
+apachePoi = "5.2.3"
 
 [libraries]
+itextpdf = { group = "com.itextpdf", name = "itextpdf", version.ref = "itextpdf" }
+apache-poi = { group = "org.apache.poi", name = "poi", version.ref = "apachePoi" }
+apache-poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "apachePoi" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
