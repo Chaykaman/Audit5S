@@ -25,8 +25,27 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
         setupVersion()
         setupAuditorName()
+        setupDarkTheme()
         setupObservers()
         viewModel.loadStats()
+    }
+
+    private fun setupDarkTheme() {
+        val prefs = requireContext()
+            .getSharedPreferences("audit5s_prefs", android.content.Context.MODE_PRIVATE)
+        val isDark = prefs.getBoolean("dark_theme", false)
+        binding.switchDarkTheme.isEnabled = true
+        binding.switchDarkTheme.isChecked = isDark
+
+        binding.switchDarkTheme.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("dark_theme", isChecked).apply()
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                if (isChecked)
+                    androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                else
+                    androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+            )
+        }
     }
 
     private fun setupVersion() {
