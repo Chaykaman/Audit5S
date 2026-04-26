@@ -34,4 +34,10 @@
         android:name="com.sys.audit5s.ui.remark.RemarkDetailFragment"
         android:label="Замечание" />
 
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.sys.audit5s.ui.profile.ProfileFragment"
+        android:label="Профиль" />
+
+
 </navigation>
