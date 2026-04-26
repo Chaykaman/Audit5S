@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F5F5F5">
+    android:background="@color/background">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -46,7 +46,7 @@
             android:layout_marginTop="24dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp"
-            app:cardBackgroundColor="#FFFFFF"
+            app:cardBackgroundColor="@color/surface"
             app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -63,7 +63,7 @@
                     android:layout_height="wrap_content"
                     android:text="Дата проведения"
                     android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginBottom="4dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -96,7 +96,7 @@
                     android:layout_height="wrap_content"
                     android:text="ФИО аудитора"
                     android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginBottom="4dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -113,7 +113,8 @@
                         android:id="@+id/etAuditor"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPersonName|textCapWords" />
+                        android:inputType="textPersonName|textCapWords"
+                        android:textColor="@color/text_primary" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -123,24 +124,25 @@
                     android:layout_height="wrap_content"
                     android:text="ФИО представителя цеха"
                     android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginBottom="4dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilWorkshopRep"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/text_secondary"
                     android:layout_height="wrap_content"
                     android:hint="Введите ФИО"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/text_secondary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etWorkshopRep"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPersonName|textCapWords" />
+                        android:inputType="textPersonName|textCapWords"
+                        android:textColor="@color/text_primary" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -150,23 +152,24 @@
                     android:layout_height="wrap_content"
                     android:text="Наименование участка"
                     android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginBottom="4dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilSection"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/text_secondary"
                     android:layout_height="wrap_content"
-                    android:hint="Введите наименование">
+                    android:hint="Введите наименование"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/text_secondary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textCapSentences" />
+                        android:inputType="textCapSentences"
+                        android:textColor="@color/text_primary" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 

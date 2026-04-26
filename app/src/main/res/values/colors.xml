@@ -29,4 +29,10 @@
     <color name="divider">#E0E0E0</color>
     <color name="error">#f44336</color>
     <color name="white">#FFFFFF</color>
+
+    <color name="remark_group_bg">#FFF8F0</color>
+
+
+    <color name="remark_item_bg">#FFF8F0</color>
+    <color name="remark_item_stroke">#ff9800</color>
 </resources>
