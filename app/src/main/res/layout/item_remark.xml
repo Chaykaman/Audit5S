@@ -7,9 +7,9 @@
     android:layout_marginBottom="8dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="0dp"
-    app:cardBackgroundColor="#FFF8F0"
+    app:cardBackgroundColor="@color/remark_item_bg"
     app:strokeWidth="1dp"
-    app:strokeColor="@color/score_1">
+    app:strokeColor="@color/remark_item_stroke">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -56,7 +56,8 @@
             android:layout_height="20dp"
             android:src="@drawable/ic_back"
             android:rotation="180"
-            android:alpha="0.4" />
+            android:alpha="0.5"
+            app:tint="@color/text_secondary" />
 
     </LinearLayout>
 

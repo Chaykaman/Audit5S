@@ -16,7 +16,8 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
             android:title="Профиль"
-            app:titleTextColor="@color/white" />
+            app:titleTextColor="@color/white"
+            app:subtitleTextColor="@color/white"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 

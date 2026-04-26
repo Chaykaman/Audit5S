@@ -104,7 +104,7 @@
                 android:layout_height="wrap_content"
                 android:text="Замечание обязательно"
                 android:textSize="11sp"
-                android:textColor="@color/score_1"
+                android:textColor="@color/text_secondary"
                 android:textStyle="bold"
                 android:layout_marginBottom="10dp" />
 
