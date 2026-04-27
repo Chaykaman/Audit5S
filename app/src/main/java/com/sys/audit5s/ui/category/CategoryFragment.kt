@@ -182,7 +182,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 val desc = sheetBinding.etDescription.text.toString().trim()
                 val deadline = sheetBinding.etDeadline.text.toString().trim()
                 val executor = sheetBinding.etExecutor.text.toString().trim()
-                if (desc.isEmpty() || deadline.isEmpty() || executor.isEmpty()) {
+                if (desc.isEmpty() || executor.isEmpty()) {
                     Toast.makeText(
                         requireContext(),
                         "Заполните все поля замечания",

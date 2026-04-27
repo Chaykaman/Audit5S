@@ -113,7 +113,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Срок выполнения"
+                android:hint="Срок выполнения (необязательно)"
                 android:layout_marginBottom="8dp"
                 app:boxStrokeColor="@color/primary"
                 app:hintTextColor="@color/text_secondary">
