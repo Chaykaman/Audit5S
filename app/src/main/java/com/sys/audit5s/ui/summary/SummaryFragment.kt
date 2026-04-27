@@ -2,15 +2,16 @@ package com.sys.audit5s.ui.summary
 
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.sys.audit5s.R
 import com.sys.audit5s.databinding.FragmentSummaryBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,7 +24,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
     private val binding get() = _binding!!
     private val viewModel: SummaryViewModel by viewModels()
     private val exportViewModel: ExportViewModel by viewModels()
-    private lateinit var remarkAdapter: RemarkAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -33,7 +33,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         viewModel.load(auditId)
 
         setupToolbar()
-        setupRemarks()
         setupObservers()
         setupButtons(auditId)
     }
@@ -46,17 +45,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         binding.toolbar.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
-    }
-
-    private fun setupRemarks() {
-        remarkAdapter = RemarkAdapter { remarkItem ->
-            findNavController().navigate(
-                R.id.remarkDetailFragment,
-                bundleOf("remarkId" to remarkItem.remark.id)
-            )
-        }
-        binding.rvRemarks.layoutManager = LinearLayoutManager(requireContext())
-        binding.rvRemarks.adapter = remarkAdapter
     }
 
     private fun setupObservers() {
@@ -87,55 +75,11 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.remarks.collect { remarks ->
-                remarkAdapter.submitList(remarks)
+                buildRemarkViews(remarks)
                 binding.cardRemarks.visibility =
                     if (remarks.isEmpty()) View.GONE else View.VISIBLE
             }
         }
-    }
-
-    private fun buildCategoryChips(results: List<CategoryResult>) {
-        binding.categoriesContainer.removeAllViews()
-        results.forEach { result ->
-            val chip = TextView(requireContext()).apply {
-                text = result.category
-                textSize = 12f
-                setPadding(16, 8, 16, 8)
-                setTextColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (result.isPassed) R.color.white else R.color.text_secondary
-                    )
-                )
-                background = ContextCompat.getDrawable(
-                    requireContext(),
-                    if (result.isPassed) R.drawable.bg_chip_passed
-                    else R.drawable.bg_chip_failed
-                )
-                val params = android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.setMargins(4, 0, 4, 0)
-                layoutParams = params
-            }
-            binding.categoriesContainer.addView(chip)
-        }
-    }
-
-    private fun setupButtons(auditId: Long) {
-        binding.btnNewAudit.setOnClickListener {
-            findNavController().navigate(R.id.startAuditFragment)
-        }
-
-        binding.btnExportPdf.setOnClickListener {
-            exportViewModel.exportPdf(requireContext(), auditId)
-        }
-
-        binding.btnExportExcel.setOnClickListener {
-            exportViewModel.exportExcel(requireContext(), auditId)
-        }
-
         viewLifecycleOwner.lifecycleScope.launch {
             exportViewModel.exportState.collect { state ->
                 when (state) {
@@ -163,15 +107,115 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         }
     }
 
+    private fun buildRemarkViews(remarks: List<RemarkUiItem>) {
+        binding.remarksContainer.removeAllViews()
+        val inflater = layoutInflater
+
+        remarks.forEach { item ->
+            val itemView = inflater.inflate(
+                R.layout.item_remark,
+                binding.remarksContainer,
+                false
+            )
+            itemView.findViewById<TextView>(R.id.tvRemarkCategory).text =
+                "Категория ${item.category} · Вопрос ${item.questionNumber}"
+            itemView.findViewById<TextView>(R.id.tvRemarkDescription).text =
+                item.remark.description
+            itemView.findViewById<TextView>(R.id.tvRemarkDeadline).text =
+                "Срок: ${item.remark.deadlineDate}"
+            itemView.setOnClickListener {
+                findNavController().navigate(
+                    R.id.remarkDetailFragment,
+                    bundleOf("remarkId" to item.remark.id)
+                )
+            }
+
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.setMargins(0, 0, 0, 8)
+            itemView.layoutParams = params
+
+            binding.remarksContainer.addView(itemView)
+        }
+    }
+
+    private fun buildCategoryChips(results: List<CategoryResult>) {
+        binding.categoriesContainer.removeAllViews()
+        results.forEach { result ->
+            val chip = TextView(requireContext()).apply {
+                text = result.category
+                textSize = 12f
+                setPadding(16, 8, 16, 8)
+                setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        if (result.isPassed) R.color.white else R.color.text_secondary
+                    )
+                )
+                background = ContextCompat.getDrawable(
+                    requireContext(),
+                    if (result.isPassed) R.drawable.bg_chip_passed
+                    else R.drawable.bg_chip_failed
+                )
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                params.setMargins(4, 0, 4, 0)
+                layoutParams = params
+            }
+            binding.categoriesContainer.addView(chip)
+        }
+    }
+
+    private fun setupButtons(auditId: Long) {
+        binding.btnNewAudit.setOnClickListener {
+            findNavController().navigate(R.id.startAuditFragment)
+        }
+
+        binding.btnEditAudit.setOnClickListener {
+            val categories = arrayOf("1С", "2С", "3С", "4С", "5С")
+            AlertDialog.Builder(requireContext())
+                .setTitle("Редактирование аудита")
+                .setItems(categories) { _, which ->
+                    findNavController().navigate(
+                        R.id.categoryFragment,
+                        bundleOf(
+                            "auditId" to auditId,
+                            "category" to categories[which]
+                        )
+                    )
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+
+        binding.btnExportPdf.setOnClickListener {
+            exportViewModel.exportPdf(requireContext(), auditId)
+        }
+
+        binding.btnExportExcel.setOnClickListener {
+            exportViewModel.exportExcel(requireContext(), auditId)
+        }
+    }
+
     private fun shareFile(file: java.io.File) {
         val uri = androidx.core.content.FileProvider.getUriForFile(
             requireContext(),
             "${requireContext().packageName}.fileprovider",
             file
         )
+        val mimeType = when {
+            file.name.endsWith(".pdf") -> "application/pdf"
+            file.name.endsWith(".xlsx") ->
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            file.name.endsWith(".zip") -> "application/zip"
+            else -> "*/*"
+        }
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = if (file.name.endsWith(".pdf")) "application/pdf"
-            else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            type = mimeType
             putExtra(android.content.Intent.EXTRA_STREAM, uri)
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

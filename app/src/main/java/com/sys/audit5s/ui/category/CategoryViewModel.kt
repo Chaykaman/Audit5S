@@ -61,8 +61,12 @@ class CategoryViewModel @Inject constructor(
 
     fun saveAllDefaultScores(onDone: () -> Unit) {
         viewModelScope.launch {
+            val savedScores = questionScoreRepository.getByCategory(auditId, category)
             _questions.value.forEach { questionState ->
-                if (questionState.scoreEntity == null) {
+                val alreadySaved = savedScores.any {
+                    it.questionNumber == questionState.question.number
+                }
+                if (!alreadySaved) {
                     questionScoreRepository.insert(
                         QuestionScoreEntity(
                             auditId = auditId,

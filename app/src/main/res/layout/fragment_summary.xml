@@ -264,15 +264,27 @@
                         android:textColor="@color/text_secondary"
                         android:layout_marginBottom="10dp" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvRemarks"
+                    <LinearLayout
+                        android:id="@+id/remarksContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" />
+                        android:orientation="vertical" />
 
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>
+
+            <!-- Кнопка редактирования -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditAudit"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:text="Редактировать аудит"
+                android:textAllCaps="false"
+                app:strokeColor="@color/primary"
+                app:cornerRadius="12dp" />
 
             <!-- Кнопки экспорта -->
             <LinearLayout

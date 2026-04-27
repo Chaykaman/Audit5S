@@ -52,10 +52,12 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
             viewModel.state.collect { state ->
                 state ?: return@collect
 
+                // Вопрос
                 binding.tvCategory.text =
                     "Категория ${state.category} · Вопрос ${state.questionNumber}"
                 binding.tvQuestionText.text = state.questionText
 
+                // Цвет оценки
                 val colorRes = when (state.score) {
                     0 -> R.color.score_0
                     1 -> R.color.score_1
@@ -66,11 +68,13 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                 binding.tvScore.backgroundTintList =
                     ContextCompat.getColorStateList(requireContext(), colorRes)
 
+                // Детали замечания
                 binding.tvDescription.text = state.remark.description
                 binding.tvExecutor.text = state.remark.executorName
-                binding.tvDeadline.text = state.remark.deadlineDate
+                binding.tvDeadline.text = state.remark.deadlineDate.ifEmpty { "Не указан" }
                 binding.tvActualDate.text = state.remark.actualDate ?: "—"
 
+                // Кнопка выполнено
                 if (state.remark.actualDate != null) {
                     binding.btnMarkDone.text = "Выполнено: ${state.remark.actualDate}"
                     binding.btnMarkDone.isEnabled = false
@@ -81,10 +85,12 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                     binding.btnMarkDone.alpha = 1.0f
                 }
 
+                // Фото
                 if (state.photos.isNotEmpty()) {
                     binding.cardPhotos.visibility = View.VISIBLE
                     binding.photoContainer.removeAllViews()
                     val sizePx = (90 * resources.displayMetrics.density).toInt()
+
                     state.photos.forEach { photo ->
                         val imageView = ImageView(requireContext()).apply {
                             layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -100,8 +106,21 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                         }
                         binding.photoContainer.addView(imageView)
                     }
+
+                    // Показываем кнопку сохранения фото
+                    binding.btnSavePhotos.visibility = View.VISIBLE
+                    binding.btnSavePhotos.setOnClickListener {
+                        viewModel.savePhotosToGallery(requireContext()) { count ->
+                            Toast.makeText(
+                                requireContext(),
+                                "Сохранено фото в галерею: $count",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 } else {
                     binding.cardPhotos.visibility = View.GONE
+                    binding.btnSavePhotos.visibility = View.GONE
                 }
             }
         }

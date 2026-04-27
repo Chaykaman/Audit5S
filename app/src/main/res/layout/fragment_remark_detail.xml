@@ -210,6 +210,7 @@
             </androidx.cardview.widget.CardView>
 
             <!-- Карточка с фото -->
+
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardPhotos"
                 android:layout_width="match_parent"
@@ -236,7 +237,8 @@
 
                     <HorizontalScrollView
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp">
 
                         <LinearLayout
                             android:id="@+id/photoContainer"
@@ -246,6 +248,18 @@
                             android:gravity="center_vertical" />
 
                     </HorizontalScrollView>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSavePhotos"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="Сохранить фото в галерею"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        app:strokeColor="@color/primary"
+                        app:cornerRadius="8dp" />
 
                 </LinearLayout>
 
