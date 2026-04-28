@@ -165,9 +165,15 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             exportViewModel.exportPdf(requireContext(), auditId)
         }
 
+        binding.btnEditAuditData.setOnClickListener {
+            showEditAuditDialog()
+        }
+
         binding.btnExportExcel.setOnClickListener {
             exportViewModel.exportExcel(requireContext(), auditId)
         }
+
+
     }
 
     private fun shareFile(file: java.io.File) {
@@ -191,8 +197,81 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         startActivity(android.content.Intent.createChooser(intent, "Поделиться файлом"))
     }
 
+    private fun showEditAuditDialog() {
+        val audit = viewModel.audit.value ?: return
+
+        val dialogView = layoutInflater.inflate(
+            R.layout.dialog_edit_audit, null
+        )
+
+        val etDate = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            R.id.etDialogDate
+        )
+        val etAuditor = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            R.id.etDialogAuditor
+        )
+        val etWorkshopRep = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            R.id.etDialogWorkshopRep
+        )
+        val etSection = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            R.id.etDialogSection
+        )
+
+        etDate.setText(audit.date)
+        etAuditor.setText(audit.auditorName)
+        etWorkshopRep.setText(audit.workshopRepName)
+        etSection.setText(audit.sectionName)
+
+        // DatePicker для даты
+        etDate.setOnClickListener {
+            val cal = java.util.Calendar.getInstance()
+            android.app.DatePickerDialog(
+                requireContext(),
+                { _, y, m, d ->
+                    etDate.setText("%02d.%02d.%d".format(d, m + 1, y))
+                },
+                cal.get(java.util.Calendar.YEAR),
+                cal.get(java.util.Calendar.MONTH),
+                cal.get(java.util.Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Редактировать данные аудита")
+            .setView(dialogView)
+            .setPositiveButton("Сохранить") { _, _ ->
+                val date = etDate.text.toString().trim()
+                val auditor = etAuditor.text.toString().trim()
+                val workshopRep = etWorkshopRep.text.toString().trim()
+                val section = etSection.text.toString().trim()
+
+                if (date.isEmpty() || auditor.isEmpty() ||
+                    workshopRep.isEmpty() || section.isEmpty()
+                ) {
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "Заполните все поля",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    return@setPositiveButton
+                }
+
+                viewModel.updateAuditData(date, auditor, workshopRep, section) {
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "Данные обновлены",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
+
+
 }

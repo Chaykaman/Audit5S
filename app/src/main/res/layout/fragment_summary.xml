@@ -254,6 +254,17 @@
                 app:strokeColor="@color/primary"
                 app:cornerRadius="12dp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditAuditData"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:text="Редактировать данные аудита"
+                android:textAllCaps="false"
+                app:strokeColor="@color/text_secondary"
+                app:cornerRadius="12dp" />
+
             <!-- Кнопки экспорта -->
             <LinearLayout
                 android:layout_width="match_parent"

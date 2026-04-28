@@ -87,4 +87,26 @@ class SummaryViewModel @Inject constructor(
             _remarks.value = remarkItems
         }
     }
+
+    fun updateAuditData(
+        date: String,
+        auditorName: String,
+        workshopRepName: String,
+        sectionName: String,
+        onDone: () -> Unit
+    ) {
+        viewModelScope.launch {
+            val current = _audit.value ?: return@launch
+            auditRepository.update(
+                current.copy(
+                    date = date,
+                    auditorName = auditorName,
+                    workshopRepName = workshopRepName,
+                    sectionName = sectionName
+                )
+            )
+            load(current.id)
+            onDone()
+        }
+    }
 }
