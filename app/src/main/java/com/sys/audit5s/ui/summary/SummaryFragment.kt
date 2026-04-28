@@ -68,11 +68,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 binding.tvMaxScore.text = "итоговый результат"
             }
         }
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.categoryResults.collect { results ->
-                buildCategoryChips(results)
-            }
-        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.remarks.collect { remarks ->
                 buildRemarkViews(remarks)
@@ -141,34 +137,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         }
     }
 
-    private fun buildCategoryChips(results: List<CategoryResult>) {
-        binding.categoriesContainer.removeAllViews()
-        results.forEach { result ->
-            val chip = TextView(requireContext()).apply {
-                text = result.category
-                textSize = 12f
-                setPadding(16, 8, 16, 8)
-                setTextColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (result.isPassed) R.color.white else R.color.text_secondary
-                    )
-                )
-                background = ContextCompat.getDrawable(
-                    requireContext(),
-                    if (result.isPassed) R.drawable.bg_chip_passed
-                    else R.drawable.bg_chip_failed
-                )
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.setMargins(4, 0, 4, 0)
-                layoutParams = params
-            }
-            binding.categoriesContainer.addView(chip)
-        }
-    }
+
 
     private fun setupButtons(auditId: Long) {
         binding.btnNewAudit.setOnClickListener {
