@@ -6,6 +6,7 @@ import com.sys.audit5s.data.db.entity.RemarkEntity
 import com.sys.audit5s.data.db.entity.RemarkPhotoEntity
 import com.sys.audit5s.data.repository.QuestionScoreRepository
 import com.sys.audit5s.data.repository.RemarkRepository
+import com.sys.audit5s.util.PhotoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,9 +51,7 @@ class RemarkDetailViewModel @Inject constructor(
     fun markAsDone(date: String, onDone: () -> Unit) {
         viewModelScope.launch {
             val current = _state.value ?: return@launch
-            remarkRepository.update(
-                current.remark.copy(actualDate = date)
-            )
+            remarkRepository.update(current.remark.copy(actualDate = date))
             load(current.remark.id)
             onDone()
         }
@@ -61,9 +60,21 @@ class RemarkDetailViewModel @Inject constructor(
     fun markAsUndone(onDone: () -> Unit) {
         viewModelScope.launch {
             val current = _state.value ?: return@launch
-            remarkRepository.update(
-                current.remark.copy(actualDate = null)
-            )
+            remarkRepository.update(current.remark.copy(actualDate = null))
+            load(current.remark.id)
+            onDone()
+        }
+    }
+
+    fun deletePhoto(
+        context: android.content.Context,
+        photo: RemarkPhotoEntity,
+        onDone: () -> Unit
+    ) {
+        viewModelScope.launch {
+            PhotoManager.deletePhoto(context, photo.photoUri)
+            remarkRepository.deletePhoto(photo)
+            val current = _state.value ?: return@launch
             load(current.remark.id)
             onDone()
         }

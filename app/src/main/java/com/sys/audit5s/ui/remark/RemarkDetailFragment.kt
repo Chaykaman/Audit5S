@@ -3,9 +3,12 @@ package com.sys.audit5s.ui.remark
 import android.app.DatePickerDialog
 import android.app.Dialog
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -86,12 +89,20 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                     binding.cardPhotos.visibility = View.VISIBLE
                     binding.photoContainer.removeAllViews()
                     val sizePx = (90 * resources.displayMetrics.density).toInt()
+                    val deleteBtnSize = (24 * resources.displayMetrics.density).toInt()
 
                     state.photos.forEach { photo ->
+                        val frameLayout = FrameLayout(requireContext()).apply {
+                            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                                setMargins(0, 0, 12, 0)
+                            }
+                        }
+
                         val imageView = ImageView(requireContext()).apply {
-                            layoutParams = android.widget.LinearLayout.LayoutParams(
-                                sizePx, sizePx
-                            ).apply { setMargins(0, 0, 12, 0) }
+                            layoutParams = FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT
+                            )
                             scaleType = ImageView.ScaleType.CENTER_CROP
                             clipToOutline = true
                             background = ContextCompat.getDrawable(
@@ -100,7 +111,39 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                             setImageURI(android.net.Uri.parse(photo.photoUri))
                             setOnClickListener { showFullScreenPhoto(photo.photoUri) }
                         }
-                        binding.photoContainer.addView(imageView)
+
+                        val deleteBtn = ImageView(requireContext()).apply {
+                            layoutParams = FrameLayout.LayoutParams(
+                                deleteBtnSize, deleteBtnSize
+                            ).apply {
+                                gravity = Gravity.TOP or Gravity.END
+                                setMargins(0, 4, 4, 0)
+                            }
+                            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+                            background = ContextCompat.getDrawable(
+                                requireContext(), R.drawable.bg_delete_photo
+                            )
+                            setOnClickListener {
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("Удалить фото?")
+                                    .setMessage("Фото будет удалено безвозвратно")
+                                    .setPositiveButton("Удалить") { _, _ ->
+                                        viewModel.deletePhoto(requireContext(), photo) {
+                                            Toast.makeText(
+                                                requireContext(),
+                                                "Фото удалено",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                    .setNegativeButton("Отмена", null)
+                                    .show()
+                            }
+                        }
+
+                        frameLayout.addView(imageView)
+                        frameLayout.addView(deleteBtn)
+                        binding.photoContainer.addView(frameLayout)
                     }
 
                     binding.btnSavePhotos.visibility = View.VISIBLE
