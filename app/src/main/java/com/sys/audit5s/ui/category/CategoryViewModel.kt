@@ -111,6 +111,14 @@ class CategoryViewModel @Inject constructor(
                 )
             }
 
+            // Если оценка стала 3 — удаляем замечание
+            if (score == 3) {
+                val existingRemark = remarkRepository.getByQuestionScore(scoreId)
+                if (existingRemark != null) {
+                    remarkRepository.delete(existingRemark)
+                }
+            }
+
             if (score < 3 && remarkDescription.isNotBlank()) {
                 val existing = remarkRepository.getByQuestionScore(scoreId)
                 val remarkId = if (existing != null) {
