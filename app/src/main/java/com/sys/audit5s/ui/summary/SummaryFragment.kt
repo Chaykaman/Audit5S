@@ -87,6 +87,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                         binding.btnExportPdf.isEnabled = true
                         binding.btnExportExcel.isEnabled = true
                         shareFile(state.file)
+                        exportViewModel.resetExportState() // сбрасываем состояние
                     }
                     is ExportState.Error -> {
                         binding.btnExportPdf.isEnabled = true
