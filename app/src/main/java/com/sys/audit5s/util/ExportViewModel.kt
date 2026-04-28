@@ -56,6 +56,10 @@ class ExportViewModel @Inject constructor(
         }
     }
 
+    fun resetExportState() {
+        _exportState.value = ExportState.Idle
+    }
+
     private suspend fun buildExportData(auditId: Long): AuditExportData {
         val audit = auditRepository.getById(auditId)!!
         val allScores = questionScoreRepository.getByAudit(auditId)

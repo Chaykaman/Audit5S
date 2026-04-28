@@ -57,38 +57,56 @@ class SummaryViewModel @Inject constructor(
             val allScores = questionScoreRepository.getByAudit(auditId)
             val allRemarks = remarkRepository.getByAudit(auditId)
 
-            // Результаты по категориям
             val categories = AuditQuestions.categories
             val results = categories.map { category ->
                 val categoryScores = allScores.filter { it.category == category }
                 val score = categoryScores.sumOf { it.score }
                 val maxScore = AuditQuestions.getByCategory(category).size * 3
                 val passing = AuditQuestions.passingScore(category)
-
-                // Если вопросов не было — значит до этой категории не дошли
                 val isPassed = categoryScores.isNotEmpty() && score >= passing
                 CategoryResult(category, score, maxScore, isPassed)
             }
             _categoryResults.value = results
 
-            // Итоговый балл
             _totalScore.value = allScores.sumOf { it.score }
 
-            // Финальная категория — последняя пройденная
             val finalCat = results.filter { it.isPassed }.lastOrNull()?.category ?: "—"
             _finalCategory.value = finalCat
 
-            // Сохраняем финальную категорию в БД
             auditRepository.update(audit.copy(finalCategory = finalCat))
 
-            // Замечания с привязкой к вопросам
             val remarkItems = allRemarks.mapNotNull { remark ->
                 val score = allScores.find { it.id == remark.questionScoreId }
+                    ?: questionScoreRepository.getById(remark.questionScoreId)
                 if (score != null) {
                     RemarkUiItem(remark, score.category, score.questionNumber)
-                } else null
+                } else {
+                    RemarkUiItem(remark, "—", 0)
+                }
             }
             _remarks.value = remarkItems
+        }
+    }
+
+    fun updateAuditData(
+        date: String,
+        auditorName: String,
+        workshopRepName: String,
+        sectionName: String,
+        onDone: () -> Unit
+    ) {
+        viewModelScope.launch {
+            val current = _audit.value ?: return@launch
+            auditRepository.update(
+                current.copy(
+                    date = date,
+                    auditorName = auditorName,
+                    workshopRepName = workshopRepName,
+                    sectionName = sectionName
+                )
+            )
+            load(current.id)
+            onDone()
         }
     }
 }

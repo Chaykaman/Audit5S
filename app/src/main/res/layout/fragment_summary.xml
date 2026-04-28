@@ -205,39 +205,7 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Карточка с категориями -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="1dp"
-                app:cardBackgroundColor="@color/surface">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Результаты по категориям"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="10dp" />
-
-                    <LinearLayout
-                        android:id="@+id/categoriesContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center" />
-
-                </LinearLayout>
-
-            </androidx.cardview.widget.CardView>
 
             <!-- Замечания -->
             <androidx.cardview.widget.CardView
@@ -264,15 +232,38 @@
                         android:textColor="@color/text_secondary"
                         android:layout_marginBottom="10dp" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvRemarks"
+                    <LinearLayout
+                        android:id="@+id/remarksContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" />
+                        android:orientation="vertical" />
 
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>
+
+            <!-- Кнопка редактирования -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditAudit"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:text="Редактировать аудит"
+                android:textAllCaps="false"
+                app:strokeColor="@color/primary"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditAuditData"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:text="Редактировать данные аудита"
+                android:textAllCaps="false"
+                app:strokeColor="@color/text_secondary"
+                app:cornerRadius="12dp" />
 
             <!-- Кнопки экспорта -->
             <LinearLayout

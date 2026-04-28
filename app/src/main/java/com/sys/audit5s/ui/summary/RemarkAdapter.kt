@@ -38,7 +38,11 @@ class RemarkAdapter(
     class DiffCallback : DiffUtil.ItemCallback<RemarkUiItem>() {
         override fun areItemsTheSame(a: RemarkUiItem, b: RemarkUiItem) =
             a.remark.id == b.remark.id
+
         override fun areContentsTheSame(a: RemarkUiItem, b: RemarkUiItem) =
-            a == b
+            a.remark.id == b.remark.id &&
+                    a.remark.description == b.remark.description &&
+                    a.category == b.category &&
+                    a.questionNumber == b.questionNumber
     }
 }

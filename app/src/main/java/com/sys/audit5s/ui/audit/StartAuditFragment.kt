@@ -25,6 +25,15 @@ class StartAuditFragment : Fragment(R.layout.fragment_start_audit) {
         _binding = FragmentStartAuditBinding.bind(view)
 
         setupDatePicker()
+        // Автозаполнение сегодняшней даты
+        val calendar = Calendar.getInstance()
+        val today = "%02d.%02d.%d".format(
+            calendar.get(Calendar.DAY_OF_MONTH),
+            calendar.get(Calendar.MONTH) + 1,
+            calendar.get(Calendar.YEAR)
+        )
+        binding.etDate.setText(today)
+
         setupStartButton()
     }
 
@@ -41,6 +50,17 @@ class StartAuditFragment : Fragment(R.layout.fragment_start_audit) {
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
             ).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Обновляем ФИО каждый раз когда возвращаемся на экран
+        val prefs = requireContext()
+            .getSharedPreferences("audit5s_prefs", android.content.Context.MODE_PRIVATE)
+        val savedName = prefs.getString("auditor_name", "") ?: ""
+        if (savedName.isNotEmpty()) {
+            binding.etAuditor.setText(savedName)
         }
     }
 
