@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -52,12 +53,10 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
             viewModel.state.collect { state ->
                 state ?: return@collect
 
-                // Вопрос
                 binding.tvCategory.text =
                     "Категория ${state.category} · Вопрос ${state.questionNumber}"
                 binding.tvQuestionText.text = state.questionText
 
-                // Цвет оценки
                 val colorRes = when (state.score) {
                     0 -> R.color.score_0
                     1 -> R.color.score_1
@@ -68,24 +67,21 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                 binding.tvScore.backgroundTintList =
                     ContextCompat.getColorStateList(requireContext(), colorRes)
 
-                // Детали замечания
                 binding.tvDescription.text = state.remark.description
                 binding.tvExecutor.text = state.remark.executorName
                 binding.tvDeadline.text = state.remark.deadlineDate.ifEmpty { "Не указан" }
                 binding.tvActualDate.text = state.remark.actualDate ?: "—"
 
-                // Кнопка выполнено
                 if (state.remark.actualDate != null) {
-                    binding.btnMarkDone.text = "Выполнено: ${state.remark.actualDate}"
-                    binding.btnMarkDone.isEnabled = false
-                    binding.btnMarkDone.alpha = 0.6f
+                    binding.btnMarkDone.text = "Выполнено: ${state.remark.actualDate} · Снять"
+                    binding.btnMarkDone.isEnabled = true
+                    binding.btnMarkDone.alpha = 1.0f
                 } else {
                     binding.btnMarkDone.text = "Отметить выполненным"
                     binding.btnMarkDone.isEnabled = true
                     binding.btnMarkDone.alpha = 1.0f
                 }
 
-                // Фото
                 if (state.photos.isNotEmpty()) {
                     binding.cardPhotos.visibility = View.VISIBLE
                     binding.photoContainer.removeAllViews()
@@ -107,7 +103,6 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                         binding.photoContainer.addView(imageView)
                     }
 
-                    // Показываем кнопку сохранения фото
                     binding.btnSavePhotos.visibility = View.VISIBLE
                     binding.btnSavePhotos.setOnClickListener {
                         viewModel.savePhotosToGallery(requireContext()) { count ->
@@ -146,23 +141,42 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
 
     private fun setupButtons() {
         binding.btnMarkDone.setOnClickListener {
-            val cal = Calendar.getInstance()
-            DatePickerDialog(
-                requireContext(),
-                { _, y, m, d ->
-                    val date = "%02d.%02d.%d".format(d, m + 1, y)
-                    viewModel.markAsDone(date) {
-                        Toast.makeText(
-                            requireContext(),
-                            "Замечание отмечено выполненным",
-                            Toast.LENGTH_SHORT
-                        ).show()
+            val state = viewModel.state.value
+
+            if (state?.remark?.actualDate != null) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Снять отметку выполнения?")
+                    .setMessage("Замечание снова станет невыполненным")
+                    .setPositiveButton("Да") { _, _ ->
+                        viewModel.markAsUndone {
+                            Toast.makeText(
+                                requireContext(),
+                                "Отметка выполнения снята",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show()
+                    .setNegativeButton("Отмена", null)
+                    .show()
+            } else {
+                val cal = Calendar.getInstance()
+                DatePickerDialog(
+                    requireContext(),
+                    { _, y, m, d ->
+                        val date = "%02d.%02d.%d".format(d, m + 1, y)
+                        viewModel.markAsDone(date) {
+                            Toast.makeText(
+                                requireContext(),
+                                "Замечание отмечено выполненным",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
         }
     }
 
