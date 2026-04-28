@@ -1,10 +1,13 @@
 package com.sys.audit5s.util
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import org.apache.poi.ss.usermodel.*
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -54,7 +57,6 @@ object ExcelGenerator {
 
         var rowNum = 0
 
-        // Заголовок
         val titleRow = sheet.createRow(rowNum++)
         titleRow.heightInPoints = 30f
         val titleCell = titleRow.createCell(0)
@@ -62,13 +64,13 @@ object ExcelGenerator {
         titleCell.cellStyle = titleStyle
         sheet.addMergedRegion(CellRangeAddress(0, 0, 0, 4))
 
-        rowNum++ // Пустая строка
+        rowNum++
 
-        // Заголовок секции
         val infoHeader = sheet.createRow(rowNum++)
-        val infoHeaderCell = infoHeader.createCell(0)
-        infoHeaderCell.setCellValue("ДАННЫЕ АУДИТА")
-        infoHeaderCell.cellStyle = headerStyle
+        infoHeader.createCell(0).apply {
+            setCellValue("ДАННЫЕ АУДИТА")
+            cellStyle = headerStyle
+        }
         sheet.addMergedRegion(CellRangeAddress(rowNum - 1, rowNum - 1, 0, 4))
 
         mapOf(
@@ -90,9 +92,8 @@ object ExcelGenerator {
             }
         }
 
-        rowNum++ // Пустая строка
+        rowNum++
 
-        // Категории
         val catHeader = sheet.createRow(rowNum++)
         catHeader.createCell(0).apply {
             setCellValue("РЕЗУЛЬТАТЫ ПО КАТЕГОРИЯМ")
@@ -131,6 +132,7 @@ object ExcelGenerator {
         listOf(3000, 3000, 3000, 8000, 8000, 5000, 4000, 4000)
             .forEachIndexed { i, w -> sheet.setColumnWidth(i, w) }
 
+        val drawing = sheet.createDrawingPatriarch()
         var rowNum = 0
 
         val headerRow = sheet.createRow(rowNum++)
@@ -154,6 +156,75 @@ object ExcelGenerator {
             row.createCell(5).apply { setCellValue(remark.executor); cellStyle = normalStyle }
             row.createCell(6).apply { setCellValue(remark.deadline); cellStyle = normalStyle }
             row.createCell(7).apply { setCellValue(remark.actualDate ?: "—"); cellStyle = normalStyle }
+
+            if (remark.photos.isNotEmpty()) {
+                // Заголовок блока фото
+                val photoHeaderRow = sheet.createRow(rowNum++)
+                photoHeaderRow.createCell(0).apply {
+                    setCellValue("Фото замечания ${index + 1}:")
+                    cellStyle = headerStyle
+                }
+                sheet.addMergedRegion(
+                    CellRangeAddress(rowNum - 1, rowNum - 1, 0, 7)
+                )
+
+                // Одна строка для всех фото замечания
+                val photoRowIndex = rowNum++
+                val photoRow = sheet.createRow(photoRowIndex)
+                photoRow.heightInPoints = 200f
+
+                remark.photos.forEachIndexed { photoIndex, photoPath ->
+                    try {
+                        val photoFile = File(photoPath)
+                        if (!photoFile.exists()) return@forEachIndexed
+
+                        val bitmap = BitmapFactory.decodeFile(photoPath)
+                            ?: return@forEachIndexed
+
+                        val maxSize = 600
+                        val scaledBitmap = if (bitmap.width > maxSize || bitmap.height > maxSize) {
+                            val scale = maxSize.toFloat() / maxOf(bitmap.width, bitmap.height)
+                            Bitmap.createScaledBitmap(
+                                bitmap,
+                                (bitmap.width * scale).toInt(),
+                                (bitmap.height * scale).toInt(),
+                                true
+                            )
+                        } else bitmap
+
+                        val stream = ByteArrayOutputStream()
+                        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream)
+
+                        if (scaledBitmap != bitmap) scaledBitmap.recycle()
+                        bitmap.recycle()
+
+                        val pictureIdx = workbook.addPicture(
+                            stream.toByteArray(),
+                            Workbook.PICTURE_TYPE_JPEG
+                        )
+
+                        // Каждое фото в отдельный столбец в одной строке
+                        val colStart = photoIndex * 2
+                        val anchor = workbook.creationHelper.createClientAnchor()
+                        anchor.anchorType = ClientAnchor.AnchorType.MOVE_AND_RESIZE
+                        anchor.setCol1(colStart)
+                        anchor.row1 = photoRowIndex
+                        anchor.setCol2(colStart + 2)
+                        anchor.row2 = photoRowIndex + 1
+                        anchor.dx1 = 50
+                        anchor.dy1 = 50
+                        anchor.dx2 = -50
+                        anchor.dy2 = -50
+
+                        drawing.createPicture(anchor, pictureIdx)
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                rowNum++ // Пустая строка после блока фото
+            }
         }
     }
 
