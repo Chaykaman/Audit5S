@@ -115,6 +115,11 @@ class CategoryViewModel @Inject constructor(
             if (score == 3) {
                 val existingRemark = remarkRepository.getByQuestionScore(scoreId)
                 if (existingRemark != null) {
+                    // Удаляем фото замечания
+                    val photos = remarkRepository.getPhotosByRemark(existingRemark.id)
+                    photos.forEach { photo ->
+                        remarkRepository.deletePhoto(photo)
+                    }
                     remarkRepository.delete(existingRemark)
                 }
             }
@@ -129,6 +134,11 @@ class CategoryViewModel @Inject constructor(
                             executorName = remarkExecutor
                         )
                     )
+                    // Удаляем старые фото перед добавлением новых
+                    val oldPhotos = remarkRepository.getPhotosByRemark(existing.id)
+                    oldPhotos.forEach { photo ->
+                        remarkRepository.deletePhoto(photo)
+                    }
                     existing.id
                 } else {
                     remarkRepository.insert(
@@ -141,6 +151,8 @@ class CategoryViewModel @Inject constructor(
                         )
                     )
                 }
+
+                // Добавляем новые фото
                 photoUris.forEach { uri ->
                     remarkRepository.insertPhoto(
                         RemarkPhotoEntity(
