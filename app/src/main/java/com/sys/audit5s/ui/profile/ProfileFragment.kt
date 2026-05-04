@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.sys.audit5s.R
 import com.sys.audit5s.databinding.FragmentProfileBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,6 +30,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         setupAuditorName()
         setupDarkTheme()
         setupObservers()
+        setup1CConnection()
         viewModel.loadStats()
     }
 
@@ -64,8 +67,9 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         updateAuditorDisplay(savedName)
 
         binding.tvEdit.setOnClickListener {
+            val currentName = prefs.getString("auditor_name", "") ?: ""
             val input = EditText(requireContext()).apply {
-                setText(savedName)
+                setText(currentName)
                 hint = "Введите ФИО"
                 setPadding(48, 24, 48, 24)
             }
@@ -96,6 +100,37 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             binding.tvAuditorName.text = "Не указано"
             binding.tvAvatar.text = "?"
         }
+    }
+
+    private fun setup1CConnection() {
+        val connectionPrefs = requireContext()
+            .getSharedPreferences("connection_prefs", android.content.Context.MODE_PRIVATE)
+        val isConnected = connectionPrefs.getBoolean("is_connected", false)
+
+        update1CStatus(isConnected)
+
+        binding.btn1CConnection.setOnClickListener {
+            findNavController().navigate(R.id.connectionFragment)
+        }
+    }
+
+    private fun update1CStatus(isConnected: Boolean) {
+        binding.tv1CStatus.text = if (isConnected) "Подключено" else "Не настроено"
+        binding.tv1CStatus.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (isConnected) R.color.score_3 else R.color.text_secondary
+            )
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Обновляем статус 1С при возврате на экран
+        val connectionPrefs = requireContext()
+            .getSharedPreferences("connection_prefs", android.content.Context.MODE_PRIVATE)
+        val isConnected = connectionPrefs.getBoolean("is_connected", false)
+        update1CStatus(isConnected)
     }
 
     private fun setupObservers() {

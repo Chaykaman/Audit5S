@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/startAuditFragment">
 
@@ -38,6 +39,12 @@
         android:id="@+id/profileFragment"
         android:name="com.sys.audit5s.ui.profile.ProfileFragment"
         android:label="Профиль" />
+
+    <fragment
+        android:id="@+id/connectionFragment"
+        android:name="com.sys.audit5s.ui.settings.ConnectionFragment"
+        android:label="Подключение к 1С"
+        tools:layout="@layout/fragment_1c_connection" />
 
 
 </navigation>
