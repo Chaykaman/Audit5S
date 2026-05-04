@@ -3,8 +3,11 @@ package com.sys.audit5s.ui.category
 import android.app.DatePickerDialog
 import android.app.Dialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -57,14 +60,17 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
     }
 
     private val pickPhotoLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            val path = PhotoManager.copyPhotoToAppStorage(requireContext(), it)
-            if (path != null) {
-                currentPhotoUris.add(path)
-                updatePhotoPreview(currentSheetBinding)
+        androidx.activity.result.contract.ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isEmpty()) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            uris.forEach { uri ->
+                val path = PhotoManager.copyPhotoToAppStorage(requireContext(), uri)
+                if (path != null) {
+                    currentPhotoUris.add(path)
+                }
             }
+            updatePhotoPreview(currentSheetBinding)
         }
     }
 
@@ -127,24 +133,126 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
         currentPhotoUris = mutableListOf()
         currentSheetBinding = sheetBinding
-        updatePhotoPreview(sheetBinding)
 
-        // Загружаем существующее замечание
-        viewLifecycleOwner.lifecycleScope.launch {
-            val existing = viewModel.getRemarkForQuestion(questionState.question.number)
-            if (existing != null) {
-                sheetBinding.etDeadline.setText(existing.deadlineDate)
-                sheetBinding.etExecutor.setText(existing.executorName)
-                sheetBinding.etDescription.setText(existing.description)
-                sheetBinding.remarkGroup.visibility = View.VISIBLE
-                val photos = viewModel.getPhotosForRemark(existing.id)
-                currentPhotoUris = photos.map { it.photoUri }.toMutableList()
-                updatePhotoPreview(sheetBinding)
+        // Восстанавливаем черновик если есть
+        val draft = viewModel.remarkDraft.value
+        if (draft != null && draft.questionNumber == questionState.question.number) {
+            selectedScore = draft.score
+            sheetBinding.etDescription.setText(draft.description)
+            sheetBinding.etDeadline.setText(draft.deadline)
+            sheetBinding.etExecutor.setText(draft.executor)
+            currentPhotoUris = draft.photoUris.toMutableList()
+            updateScoreButtons(sheetBinding, selectedScore)
+            sheetBinding.remarkGroup.visibility =
+                if (selectedScore < 3) View.VISIBLE else View.GONE
+            updatePhotoPreview(sheetBinding)
+        } else {
+            updatePhotoPreview(sheetBinding)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val existing = viewModel.getRemarkForQuestion(questionState.question.number)
+                if (existing != null) {
+                    sheetBinding.etDeadline.setText(existing.deadlineDate)
+                    sheetBinding.etExecutor.setText(existing.executorName)
+                    sheetBinding.etDescription.setText(existing.description)
+                    sheetBinding.remarkGroup.visibility = View.VISIBLE
+                    val photos = viewModel.getPhotosForRemark(existing.id)
+                    currentPhotoUris = photos.map { it.photoUri }.toMutableList()
+                    updatePhotoPreview(sheetBinding)
+                }
             }
         }
 
+        val saveDraft = {
+            viewModel.saveRemarkDraft(
+                questionState.question.number,
+                selectedScore,
+                sheetBinding.etDescription.text.toString(),
+                sheetBinding.etDeadline.text.toString(),
+                sheetBinding.etExecutor.text.toString(),
+                currentPhotoUris.toList()
+            )
+        }
+
+        sheetBinding.etDescription.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { saveDraft() }
+        })
+
+        sheetBinding.etExecutor.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { saveDraft() }
+        })
+
         sheetBinding.btnAddPhoto.setOnClickListener {
             showPhotoOptions(sheetBinding)
+        }
+
+        sheetBinding.btnSavePhotos.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                var savedCount = 0
+                currentPhotoUris.forEach { photoPath ->
+                    try {
+                        val file = File(photoPath)
+                        if (!file.exists()) return@forEach
+
+                        if (android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.Q
+                        ) {
+                            val values = android.content.ContentValues().apply {
+                                put(
+                                    android.provider.MediaStore.Images.Media.DISPLAY_NAME,
+                                    "audit_photo_${System.currentTimeMillis()}.jpg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.MIME_TYPE,
+                                    "image/jpeg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                                    android.os.Environment.DIRECTORY_PICTURES + "/Audit5S"
+                                )
+                            }
+                            val uri = requireContext().contentResolver.insert(
+                                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                values
+                            )
+                            uri?.let {
+                                requireContext().contentResolver.openOutputStream(it)
+                                    ?.use { out ->
+                                        file.inputStream().copyTo(out)
+                                    }
+                                savedCount++
+                            }
+                        } else {
+                            val picturesDir = File(
+                                android.os.Environment.getExternalStoragePublicDirectory(
+                                    android.os.Environment.DIRECTORY_PICTURES
+                                ), "Audit5S"
+                            ).apply { mkdirs() }
+                            val dest = File(
+                                picturesDir,
+                                "audit_photo_${System.currentTimeMillis()}.jpg"
+                            )
+                            file.copyTo(dest, overwrite = true)
+                            android.media.MediaScannerConnection.scanFile(
+                                requireContext(),
+                                arrayOf(dest.absolutePath),
+                                null, null
+                            )
+                            savedCount++
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                Toast.makeText(
+                    requireContext(),
+                    "Сохранено фото в галерею: $savedCount",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
         listOf(
@@ -158,6 +266,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 updateScoreButtons(sheetBinding, score)
                 sheetBinding.remarkGroup.visibility =
                     if (score < 3) View.VISIBLE else View.GONE
+                saveDraft()
             }
         }
 
@@ -170,6 +279,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 requireContext(),
                 { _, y, m, d ->
                     sheetBinding.etDeadline.setText("%02d.%02d.%d".format(d, m + 1, y))
+                    saveDraft()
                 },
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),
@@ -194,13 +304,23 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                     questionState.question.number,
                     selectedScore, desc, deadline, executor,
                     currentPhotoUris.toList()
-                ) { dialog.dismiss() }
+                ) {
+                    viewModel.clearRemarkDraft()
+                    dialog.dismiss()
+                }
             } else {
                 viewModel.saveScore(
                     questionState.question.number,
                     selectedScore
-                ) { dialog.dismiss() }
+                ) {
+                    viewModel.clearRemarkDraft()
+                    dialog.dismiss()
+                }
             }
+        }
+
+        dialog.setOnDismissListener {
+            viewModel.clearRemarkDraft()
         }
 
         dialog.show()
@@ -242,11 +362,20 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             container.removeViews(1, container.childCount - 1)
         }
         val sizePx = (90 * resources.displayMetrics.density).toInt()
-        currentPhotoUris.forEach { path ->
-            val imageView = ImageView(requireContext()).apply {
+        val deleteBtnSize = (24 * resources.displayMetrics.density).toInt()
+
+        currentPhotoUris.forEachIndexed { index, path ->
+            val frameLayout = FrameLayout(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
                     setMargins(0, 0, 12, 0)
                 }
+            }
+
+            val imageView = ImageView(requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 clipToOutline = true
                 background = ContextCompat.getDrawable(
@@ -255,8 +384,39 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 setImageURI(android.net.Uri.parse(path))
                 setOnClickListener { showFullScreenPhoto(path) }
             }
-            container.addView(imageView)
+
+            val deleteBtn = ImageView(requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    deleteBtnSize, deleteBtnSize
+                ).apply {
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.END
+                    setMargins(0, 4, 4, 0)
+                }
+                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+                background = ContextCompat.getDrawable(
+                    requireContext(), R.drawable.bg_delete_photo
+                )
+                setOnClickListener {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Удалить фото?")
+                        .setMessage("Фото будет удалено")
+                        .setPositiveButton("Удалить") { _, _ ->
+                            currentPhotoUris.removeAt(index)
+                            updatePhotoPreview(sheetBinding)
+                        }
+                        .setNegativeButton("Отмена", null)
+                        .show()
+                }
+            }
+
+            frameLayout.addView(imageView)
+            frameLayout.addView(deleteBtn)
+            container.addView(frameLayout)
         }
+
+        // Показываем кнопку сохранения если есть фото
+        sheetBinding.btnSavePhotos.visibility =
+            if (currentPhotoUris.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showFullScreenPhoto(path: String) {

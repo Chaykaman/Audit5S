@@ -204,11 +204,31 @@
                             android:src="@drawable/ic_add_photo"
                             android:scaleType="center" />
 
+
+
+
+
                     </LinearLayout>
 
                 </LinearLayout>
 
+
+
             </HorizontalScrollView>
+
+            <!-- Кнопка сохранения фото -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSavePhotos"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginBottom="8dp"
+                android:text="Сохранить фото в галерею"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:visibility="gone"
+                app:strokeColor="@color/primary"
+                app:cornerRadius="8dp" />
         </LinearLayout>
 
         <!-- Кнопка сохранить -->

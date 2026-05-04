@@ -39,6 +39,19 @@ class ExportViewModel @Inject constructor(
         export(context, auditId, isPdf = false)
     }
 
+    fun exportWord(context: Context, auditId: Long) {
+        viewModelScope.launch {
+            _exportState.value = ExportState.Loading
+            try {
+                val data = buildExportData(auditId)
+                val file = WordGenerator.generate(context, data)
+                _exportState.value = ExportState.Success(file)
+            } catch (e: Exception) {
+                _exportState.value = ExportState.Error(e.message ?: "Ошибка экспорта")
+            }
+        }
+    }
+
     private fun export(context: Context, auditId: Long, isPdf: Boolean) {
         viewModelScope.launch {
             _exportState.value = ExportState.Loading

@@ -16,7 +16,6 @@ object PdfGenerator {
         PdfWriter.getInstance(document, FileOutputStream(file))
         document.open()
 
-        // Шрифт с поддержкой кириллицы
         val baseFont = BaseFont.createFont(
             "assets/fonts/arial.ttf",
             BaseFont.IDENTITY_H,
@@ -29,7 +28,6 @@ object PdfGenerator {
         val fontBold = Font(baseFont, 10f, Font.BOLD, BaseColor(0, 14, 28))
         val fontWhite = Font(baseFont, 10f, Font.BOLD, BaseColor.WHITE)
 
-        // Заголовок
         val title = Paragraph("АУДИТ 5С", fontTitle)
         title.alignment = Element.ALIGN_CENTER
         title.spacingAfter = 4f
@@ -40,10 +38,8 @@ object PdfGenerator {
         subtitle.spacingAfter = 16f
         document.add(subtitle)
 
-        // Линия
         document.add(addLine())
 
-        // Основные данные
         document.add(sectionTitle("ДАННЫЕ АУДИТА", fontHeader))
 
         val infoTable = PdfPTable(2)
@@ -61,7 +57,6 @@ object PdfGenerator {
         document.add(infoTable)
         document.add(addLine())
 
-        // Результаты по категориям
         document.add(sectionTitle("РЕЗУЛЬТАТЫ ПО КАТЕГОРИЯМ", fontHeader))
 
         val catTable = PdfPTable(4)
@@ -69,7 +64,6 @@ object PdfGenerator {
         catTable.setWidths(floatArrayOf(1f, 1.5f, 1.5f, 1.5f))
         catTable.spacingAfter = 12f
 
-        // Заголовки таблицы
         listOf("Категория", "Баллы", "Максимум", "Статус").forEach { header ->
             val cell = PdfPCell(Phrase(header, fontWhite))
             cell.backgroundColor = BaseColor(0, 79, 158)
@@ -100,7 +94,6 @@ object PdfGenerator {
 
         document.add(catTable)
 
-        // Замечания
         if (data.remarks.isNotEmpty()) {
             document.add(addLine())
             document.add(sectionTitle("ЗАМЕЧАНИЯ (${data.remarks.size})", fontHeader))
@@ -110,7 +103,6 @@ object PdfGenerator {
                 remarkTable.widthPercentage = 100f
                 remarkTable.spacingAfter = 8f
 
-                // Заголовок замечания
                 val headerCell = PdfPCell(
                     Phrase(
                         "№${index + 1}  |  Категория ${remark.category}  |  " +
@@ -122,7 +114,6 @@ object PdfGenerator {
                 headerCell.setPadding(6f)
                 remarkTable.addCell(headerCell)
 
-                // Вопрос
                 addRemarkRow(remarkTable, "Вопрос:", remark.questionText, fontSmall, fontNormal)
                 addRemarkRow(remarkTable, "Мероприятие:", remark.description, fontSmall, fontNormal)
                 addRemarkRow(remarkTable, "Исполнитель:", remark.executor, fontSmall, fontNormal)
@@ -132,32 +123,64 @@ object PdfGenerator {
                     remark.actualDate ?: "—",
                     fontSmall, fontNormal
                 )
-                // Фото замечания
+
                 if (remark.photos.isNotEmpty()) {
                     val photoCell = PdfPCell()
                     photoCell.border = Rectangle.BOX
                     photoCell.borderColor = BaseColor(224, 224, 224)
                     photoCell.setPadding(5f)
 
-                    val photoTable = PdfPTable(remark.photos.size.coerceAtMost(3))
-                    photoTable.widthPercentage = 100f
+                    // Разбиваем фото на строки по 3
+                    remark.photos.chunked(3).forEach { photoChunk ->
+                        val photoTable = PdfPTable(photoChunk.size)
+                        photoTable.widthPercentage = 100f
 
-                    remark.photos.take(3).forEach { photoPath ->
-                        try {
-                            val image = Image.getInstance(photoPath)
-                            image.scaleToFit(150f, 150f)
-                            val imgCell = PdfPCell(image)
-                            imgCell.border = Rectangle.NO_BORDER
-                            imgCell.setPadding(3f)
-                            imgCell.horizontalAlignment = Element.ALIGN_CENTER
-                            photoTable.addCell(imgCell)
-                        } catch (e: Exception) {
-                            val errorCell = PdfPCell(Phrase("Фото недоступно", fontSmall))
-                            errorCell.border = Rectangle.NO_BORDER
-                            photoTable.addCell(errorCell)
+                        photoChunk.forEach { photoPath ->
+                            try {
+                                val bitmap = android.graphics.BitmapFactory
+                                    .decodeFile(photoPath)
+                                    ?: throw Exception("Не удалось загрузить фото")
+
+                                val maxSize = 800
+                                val scaledBitmap =
+                                    if (bitmap.width > maxSize || bitmap.height > maxSize) {
+                                        val scale = maxSize.toFloat() /
+                                                maxOf(bitmap.width, bitmap.height)
+                                        android.graphics.Bitmap.createScaledBitmap(
+                                            bitmap,
+                                            (bitmap.width * scale).toInt(),
+                                            (bitmap.height * scale).toInt(),
+                                            true
+                                        )
+                                    } else bitmap
+
+                                val stream = java.io.ByteArrayOutputStream()
+                                scaledBitmap.compress(
+                                    android.graphics.Bitmap.CompressFormat.JPEG,
+                                    70,
+                                    stream
+                                )
+
+                                if (scaledBitmap != bitmap) scaledBitmap.recycle()
+                                bitmap.recycle()
+
+                                val image = Image.getInstance(stream.toByteArray())
+                                image.scaleToFit(150f, 150f)
+                                val imgCell = PdfPCell(image)
+                                imgCell.border = Rectangle.NO_BORDER
+                                imgCell.setPadding(3f)
+                                imgCell.horizontalAlignment = Element.ALIGN_CENTER
+                                photoTable.addCell(imgCell)
+
+                            } catch (e: Exception) {
+                                val errorCell =
+                                    PdfPCell(Phrase("Фото недоступно", fontSmall))
+                                errorCell.border = Rectangle.NO_BORDER
+                                photoTable.addCell(errorCell)
+                            }
                         }
+                        photoCell.addElement(photoTable)
                     }
-                    photoCell.addElement(photoTable)
                     remarkTable.addCell(photoCell)
                 }
 
@@ -177,7 +200,10 @@ object PdfGenerator {
     }
 
     private fun addLine(): Paragraph {
-        val line = Paragraph("─".repeat(80), Font(Font.FontFamily.HELVETICA, 6f, Font.NORMAL, BaseColor.LIGHT_GRAY))
+        val line = Paragraph(
+            "─".repeat(80),
+            Font(Font.FontFamily.HELVETICA, 6f, Font.NORMAL, BaseColor.LIGHT_GRAY)
+        )
         line.spacingBefore = 4f
         line.spacingAfter = 8f
         return line

@@ -11,12 +11,13 @@ import java.util.Locale
 object PhotoManager {
 
     fun createImageFile(context: Context): File {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault())
             .format(Date())
+        val random = (Math.random() * 10000).toInt()
         val photosDir = File(context.filesDir, "photos").apply {
             if (!exists()) mkdirs()
         }
-        return File(photosDir, "PHOTO_${timestamp}.jpg")
+        return File(photosDir, "PHOTO_${timestamp}_${random}.jpg")
     }
 
     fun getUriForFile(context: Context, file: File): Uri {

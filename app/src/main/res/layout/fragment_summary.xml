@@ -205,8 +205,6 @@
 
             </androidx.cardview.widget.CardView>
 
-
-
             <!-- Замечания -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardRemarks"
@@ -242,30 +240,7 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Кнопка редактирования -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEditAudit"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="8dp"
-                android:text="Редактировать аудит"
-                android:textAllCaps="false"
-                app:strokeColor="@color/primary"
-                app:cornerRadius="12dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEditAuditData"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="8dp"
-                android:text="Редактировать данные аудита"
-                android:textAllCaps="false"
-                app:strokeColor="@color/text_secondary"
-                app:cornerRadius="12dp" />
-
-            <!-- Кнопки экспорта -->
+            <!-- Две кнопки меню -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -273,26 +248,28 @@
                 android:layout_marginBottom="8dp">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExportPdf"
+                    android:id="@+id/btnMenuEdit"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:text="Экспорт PDF"
+                    android:text="Редактировать"
                     android:textAllCaps="false"
+                    android:textColor="@color/primary"
                     app:strokeColor="@color/primary"
                     app:cornerRadius="12dp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExportExcel"
+                    android:id="@+id/btnMenuExport"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:text="Экспорт Excel"
+                    android:text="Экспорт"
                     android:textAllCaps="false"
-                    app:strokeColor="@color/score_3"
+                    android:textColor="@color/primary"
+                    app:strokeColor="@color/primary"
                     app:cornerRadius="12dp" />
 
             </LinearLayout>
