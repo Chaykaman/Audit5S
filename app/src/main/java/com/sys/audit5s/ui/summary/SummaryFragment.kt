@@ -2,7 +2,6 @@ package com.sys.audit5s.ui.summary
 
 import android.os.Bundle
 import android.view.View
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -68,7 +67,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 binding.tvMaxScore.text = "итоговый результат"
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.remarks.collect { remarks ->
                 buildRemarkViews(remarks)
@@ -82,21 +80,25 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                     is ExportState.Loading -> {
                         binding.btnExportPdf.isEnabled = false
                         binding.btnExportExcel.isEnabled = false
+                        binding.btnExportWord.isEnabled = false
                     }
                     is ExportState.Success -> {
                         binding.btnExportPdf.isEnabled = true
                         binding.btnExportExcel.isEnabled = true
+                        binding.btnExportWord.isEnabled = true
                         shareFile(state.file)
-                        exportViewModel.resetExportState() // сбрасываем состояние
+                        exportViewModel.resetExportState()
                     }
                     is ExportState.Error -> {
                         binding.btnExportPdf.isEnabled = true
                         binding.btnExportExcel.isEnabled = true
+                        binding.btnExportWord.isEnabled = true
                         Toast.makeText(
                             requireContext(),
                             "Ошибка: ${state.message}",
                             Toast.LENGTH_LONG
                         ).show()
+                        exportViewModel.resetExportState()
                     }
                     else -> {}
                 }
@@ -127,9 +129,9 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 )
             }
 
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+            val params = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             )
             params.setMargins(0, 0, 0, 8)
             itemView.layoutParams = params
@@ -137,8 +139,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             binding.remarksContainer.addView(itemView)
         }
     }
-
-
 
     private fun setupButtons(auditId: Long) {
         binding.btnNewAudit.setOnClickListener {
@@ -162,48 +162,27 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 .show()
         }
 
-        binding.btnExportPdf.setOnClickListener {
-            exportViewModel.exportPdf(requireContext(), auditId)
-        }
-
         binding.btnEditAuditData.setOnClickListener {
             showEditAuditDialog()
+        }
+
+        binding.btnExportPdf.setOnClickListener {
+            exportViewModel.exportPdf(requireContext(), auditId)
         }
 
         binding.btnExportExcel.setOnClickListener {
             exportViewModel.exportExcel(requireContext(), auditId)
         }
 
-
-    }
-
-    private fun shareFile(file: java.io.File) {
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            requireContext(),
-            "${requireContext().packageName}.fileprovider",
-            file
-        )
-        val mimeType = when {
-            file.name.endsWith(".pdf") -> "application/pdf"
-            file.name.endsWith(".xlsx") ->
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            file.name.endsWith(".zip") -> "application/zip"
-            else -> "*/*"
+        binding.btnExportWord.setOnClickListener {
+            exportViewModel.exportWord(requireContext(), auditId)
         }
-        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = mimeType
-            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(android.content.Intent.createChooser(intent, "Поделиться файлом"))
     }
 
     private fun showEditAuditDialog() {
         val audit = viewModel.audit.value ?: return
 
-        val dialogView = layoutInflater.inflate(
-            R.layout.dialog_edit_audit, null
-        )
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_audit, null)
 
         val etDate = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
             R.id.etDialogDate
@@ -223,7 +202,6 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
         etWorkshopRep.setText(audit.workshopRepName)
         etSection.setText(audit.sectionName)
 
-        // DatePicker для даты
         etDate.setOnClickListener {
             val cal = java.util.Calendar.getInstance()
             android.app.DatePickerDialog(
@@ -237,7 +215,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             ).show()
         }
 
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext())
             .setTitle("Редактировать данные аудита")
             .setView(dialogView)
             .setPositiveButton("Сохранить") { _, _ ->
@@ -249,7 +227,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 if (date.isEmpty() || auditor.isEmpty() ||
                     workshopRep.isEmpty() || section.isEmpty()
                 ) {
-                    android.widget.Toast.makeText(
+                    Toast.makeText(
                         requireContext(),
                         "Заполните все поля",
                         android.widget.Toast.LENGTH_SHORT
@@ -258,7 +236,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 }
 
                 viewModel.updateAuditData(date, auditor, workshopRep, section) {
-                    android.widget.Toast.makeText(
+                    Toast.makeText(
                         requireContext(),
                         "Данные обновлены",
                         android.widget.Toast.LENGTH_SHORT
@@ -269,10 +247,31 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             .show()
     }
 
+    private fun shareFile(file: java.io.File) {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            file
+        )
+        val mimeType = when {
+            file.name.endsWith(".pdf") -> "application/pdf"
+            file.name.endsWith(".xlsx") ->
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            file.name.endsWith(".docx") ->
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            file.name.endsWith(".zip") -> "application/zip"
+            else -> "*/*"
+        }
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = mimeType
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(android.content.Intent.createChooser(intent, "Поделиться файлом"))
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-
-
 }

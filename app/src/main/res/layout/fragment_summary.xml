@@ -299,7 +299,21 @@
                     app:strokeColor="@color/score_3"
                     app:cornerRadius="12dp" />
 
+
+
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExportWord"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:text="Экспорт Word"
+                android:textAllCaps="false"
+                android:textColor="@color/primary"
+                app:strokeColor="@color/primary"
+                app:cornerRadius="12dp" />
 
             <!-- Кнопка новый аудит -->
             <com.google.android.material.button.MaterialButton
