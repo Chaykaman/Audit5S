@@ -7,6 +7,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -161,7 +162,6 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             }
         }
 
-        // Функция автосохранения черновика
         val saveDraft = {
             viewModel.saveRemarkDraft(
                 questionState.question.number,
@@ -187,6 +187,72 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
         sheetBinding.btnAddPhoto.setOnClickListener {
             showPhotoOptions(sheetBinding)
+        }
+
+        sheetBinding.btnSavePhotos.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                var savedCount = 0
+                currentPhotoUris.forEach { photoPath ->
+                    try {
+                        val file = File(photoPath)
+                        if (!file.exists()) return@forEach
+
+                        if (android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.Q
+                        ) {
+                            val values = android.content.ContentValues().apply {
+                                put(
+                                    android.provider.MediaStore.Images.Media.DISPLAY_NAME,
+                                    "audit_photo_${System.currentTimeMillis()}.jpg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.MIME_TYPE,
+                                    "image/jpeg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                                    android.os.Environment.DIRECTORY_PICTURES + "/Audit5S"
+                                )
+                            }
+                            val uri = requireContext().contentResolver.insert(
+                                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                values
+                            )
+                            uri?.let {
+                                requireContext().contentResolver.openOutputStream(it)
+                                    ?.use { out ->
+                                        file.inputStream().copyTo(out)
+                                    }
+                                savedCount++
+                            }
+                        } else {
+                            val picturesDir = File(
+                                android.os.Environment.getExternalStoragePublicDirectory(
+                                    android.os.Environment.DIRECTORY_PICTURES
+                                ), "Audit5S"
+                            ).apply { mkdirs() }
+                            val dest = File(
+                                picturesDir,
+                                "audit_photo_${System.currentTimeMillis()}.jpg"
+                            )
+                            file.copyTo(dest, overwrite = true)
+                            android.media.MediaScannerConnection.scanFile(
+                                requireContext(),
+                                arrayOf(dest.absolutePath),
+                                null, null
+                            )
+                            savedCount++
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                Toast.makeText(
+                    requireContext(),
+                    "Сохранено фото в галерею: $savedCount",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
         listOf(
@@ -296,11 +362,20 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
             container.removeViews(1, container.childCount - 1)
         }
         val sizePx = (90 * resources.displayMetrics.density).toInt()
-        currentPhotoUris.forEach { path ->
-            val imageView = ImageView(requireContext()).apply {
+        val deleteBtnSize = (24 * resources.displayMetrics.density).toInt()
+
+        currentPhotoUris.forEachIndexed { index, path ->
+            val frameLayout = FrameLayout(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
                     setMargins(0, 0, 12, 0)
                 }
+            }
+
+            val imageView = ImageView(requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 clipToOutline = true
                 background = ContextCompat.getDrawable(
@@ -309,8 +384,39 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 setImageURI(android.net.Uri.parse(path))
                 setOnClickListener { showFullScreenPhoto(path) }
             }
-            container.addView(imageView)
+
+            val deleteBtn = ImageView(requireContext()).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    deleteBtnSize, deleteBtnSize
+                ).apply {
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.END
+                    setMargins(0, 4, 4, 0)
+                }
+                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+                background = ContextCompat.getDrawable(
+                    requireContext(), R.drawable.bg_delete_photo
+                )
+                setOnClickListener {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Удалить фото?")
+                        .setMessage("Фото будет удалено")
+                        .setPositiveButton("Удалить") { _, _ ->
+                            currentPhotoUris.removeAt(index)
+                            updatePhotoPreview(sheetBinding)
+                        }
+                        .setNegativeButton("Отмена", null)
+                        .show()
+                }
+            }
+
+            frameLayout.addView(imageView)
+            frameLayout.addView(deleteBtn)
+            container.addView(frameLayout)
         }
+
+        // Показываем кнопку сохранения если есть фото
+        sheetBinding.btnSavePhotos.visibility =
+            if (currentPhotoUris.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showFullScreenPhoto(path: String) {
