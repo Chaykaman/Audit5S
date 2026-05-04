@@ -21,6 +21,15 @@ data class QuestionUiState(
     val score: Int = 3
 )
 
+data class RemarkDraftState(
+    val questionNumber: Int,
+    val score: Int,
+    val description: String,
+    val deadline: String,
+    val executor: String,
+    val photoUris: List<String>
+)
+
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val questionScoreRepository: QuestionScoreRepository,
@@ -32,6 +41,9 @@ class CategoryViewModel @Inject constructor(
 
     private val _totalScore = MutableStateFlow(0)
     val totalScore: StateFlow<Int> = _totalScore
+
+    private val _remarkDraft = MutableStateFlow<RemarkDraftState?>(null)
+    val remarkDraft: StateFlow<RemarkDraftState?> = _remarkDraft
 
     private var auditId: Long = -1L
     private var category: String = ""
@@ -57,6 +69,23 @@ class CategoryViewModel @Inject constructor(
             _questions.value = uiStates
             recalcTotal()
         }
+    }
+
+    fun saveRemarkDraft(
+        questionNumber: Int,
+        score: Int,
+        description: String,
+        deadline: String,
+        executor: String,
+        photoUris: List<String>
+    ) {
+        _remarkDraft.value = RemarkDraftState(
+            questionNumber, score, description, deadline, executor, photoUris
+        )
+    }
+
+    fun clearRemarkDraft() {
+        _remarkDraft.value = null
     }
 
     fun saveAllDefaultScores(onDone: () -> Unit) {
@@ -115,7 +144,6 @@ class CategoryViewModel @Inject constructor(
             if (score == 3) {
                 val existingRemark = remarkRepository.getByQuestionScore(scoreId)
                 if (existingRemark != null) {
-                    // Удаляем фото замечания
                     val photos = remarkRepository.getPhotosByRemark(existingRemark.id)
                     photos.forEach { photo ->
                         remarkRepository.deletePhoto(photo)
@@ -134,7 +162,6 @@ class CategoryViewModel @Inject constructor(
                             executorName = remarkExecutor
                         )
                     )
-                    // Удаляем старые фото перед добавлением новых
                     val oldPhotos = remarkRepository.getPhotosByRemark(existing.id)
                     oldPhotos.forEach { photo ->
                         remarkRepository.deletePhoto(photo)
@@ -152,7 +179,6 @@ class CategoryViewModel @Inject constructor(
                     )
                 }
 
-                // Добавляем новые фото
                 photoUris.forEach { uri ->
                     remarkRepository.insertPhoto(
                         RemarkPhotoEntity(

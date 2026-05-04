@@ -3,6 +3,8 @@ package com.sys.audit5s.ui.category
 import android.app.DatePickerDialog
 import android.app.Dialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -60,7 +62,6 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         androidx.activity.result.contract.ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isEmpty()) return@registerForActivityResult
-
         viewLifecycleOwner.lifecycleScope.launch {
             uris.forEach { uri ->
                 val path = PhotoManager.copyPhotoToAppStorage(requireContext(), uri)
@@ -131,21 +132,58 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
         currentPhotoUris = mutableListOf()
         currentSheetBinding = sheetBinding
-        updatePhotoPreview(sheetBinding)
 
-        // Загружаем существующее замечание
-        viewLifecycleOwner.lifecycleScope.launch {
-            val existing = viewModel.getRemarkForQuestion(questionState.question.number)
-            if (existing != null) {
-                sheetBinding.etDeadline.setText(existing.deadlineDate)
-                sheetBinding.etExecutor.setText(existing.executorName)
-                sheetBinding.etDescription.setText(existing.description)
-                sheetBinding.remarkGroup.visibility = View.VISIBLE
-                val photos = viewModel.getPhotosForRemark(existing.id)
-                currentPhotoUris = photos.map { it.photoUri }.toMutableList()
-                updatePhotoPreview(sheetBinding)
+        // Восстанавливаем черновик если есть
+        val draft = viewModel.remarkDraft.value
+        if (draft != null && draft.questionNumber == questionState.question.number) {
+            selectedScore = draft.score
+            sheetBinding.etDescription.setText(draft.description)
+            sheetBinding.etDeadline.setText(draft.deadline)
+            sheetBinding.etExecutor.setText(draft.executor)
+            currentPhotoUris = draft.photoUris.toMutableList()
+            updateScoreButtons(sheetBinding, selectedScore)
+            sheetBinding.remarkGroup.visibility =
+                if (selectedScore < 3) View.VISIBLE else View.GONE
+            updatePhotoPreview(sheetBinding)
+        } else {
+            updatePhotoPreview(sheetBinding)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val existing = viewModel.getRemarkForQuestion(questionState.question.number)
+                if (existing != null) {
+                    sheetBinding.etDeadline.setText(existing.deadlineDate)
+                    sheetBinding.etExecutor.setText(existing.executorName)
+                    sheetBinding.etDescription.setText(existing.description)
+                    sheetBinding.remarkGroup.visibility = View.VISIBLE
+                    val photos = viewModel.getPhotosForRemark(existing.id)
+                    currentPhotoUris = photos.map { it.photoUri }.toMutableList()
+                    updatePhotoPreview(sheetBinding)
+                }
             }
         }
+
+        // Функция автосохранения черновика
+        val saveDraft = {
+            viewModel.saveRemarkDraft(
+                questionState.question.number,
+                selectedScore,
+                sheetBinding.etDescription.text.toString(),
+                sheetBinding.etDeadline.text.toString(),
+                sheetBinding.etExecutor.text.toString(),
+                currentPhotoUris.toList()
+            )
+        }
+
+        sheetBinding.etDescription.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { saveDraft() }
+        })
+
+        sheetBinding.etExecutor.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { saveDraft() }
+        })
 
         sheetBinding.btnAddPhoto.setOnClickListener {
             showPhotoOptions(sheetBinding)
@@ -162,6 +200,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 updateScoreButtons(sheetBinding, score)
                 sheetBinding.remarkGroup.visibility =
                     if (score < 3) View.VISIBLE else View.GONE
+                saveDraft()
             }
         }
 
@@ -174,6 +213,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 requireContext(),
                 { _, y, m, d ->
                     sheetBinding.etDeadline.setText("%02d.%02d.%d".format(d, m + 1, y))
+                    saveDraft()
                 },
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),
@@ -198,13 +238,23 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                     questionState.question.number,
                     selectedScore, desc, deadline, executor,
                     currentPhotoUris.toList()
-                ) { dialog.dismiss() }
+                ) {
+                    viewModel.clearRemarkDraft()
+                    dialog.dismiss()
+                }
             } else {
                 viewModel.saveScore(
                     questionState.question.number,
                     selectedScore
-                ) { dialog.dismiss() }
+                ) {
+                    viewModel.clearRemarkDraft()
+                    dialog.dismiss()
+                }
             }
+        }
+
+        dialog.setOnDismissListener {
+            viewModel.clearRemarkDraft()
         }
 
         dialog.show()
