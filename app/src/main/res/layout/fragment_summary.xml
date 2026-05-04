@@ -250,6 +250,7 @@
                 android:layout_height="48dp"
                 android:layout_marginBottom="8dp"
                 android:text="Редактировать аудит"
+                android:textColor="@color/primary"
                 android:textAllCaps="false"
                 app:strokeColor="@color/primary"
                 app:cornerRadius="12dp" />
@@ -261,6 +262,7 @@
                 android:layout_height="48dp"
                 android:layout_marginBottom="8dp"
                 android:text="Редактировать данные аудита"
+                android:textColor="@color/text_primary"
                 android:textAllCaps="false"
                 app:strokeColor="@color/text_secondary"
                 app:cornerRadius="12dp" />
@@ -281,6 +283,7 @@
                     android:layout_marginEnd="6dp"
                     android:text="Экспорт PDF"
                     android:textAllCaps="false"
+                    android:textColor="@color/primary"
                     app:strokeColor="@color/primary"
                     app:cornerRadius="12dp" />
 
@@ -292,6 +295,7 @@
                     android:layout_weight="1"
                     android:text="Экспорт Excel"
                     android:textAllCaps="false"
+                    android:textColor="@color/score_3"
                     app:strokeColor="@color/score_3"
                     app:cornerRadius="12dp" />
 

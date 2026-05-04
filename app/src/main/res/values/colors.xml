@@ -35,4 +35,6 @@
 
     <color name="remark_item_bg">#FFF8F0</color>
     <color name="remark_item_stroke">#ff9800</color>
+
+    <color name="button_outlined_text">#000e1c</color>
 </resources>
