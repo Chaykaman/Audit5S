@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.sys.audit5s.R
 import com.sys.audit5s.databinding.FragmentSummaryBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -78,21 +79,15 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             exportViewModel.exportState.collect { state ->
                 when (state) {
                     is ExportState.Loading -> {
-                        binding.btnExportPdf.isEnabled = false
-                        binding.btnExportExcel.isEnabled = false
-                        binding.btnExportWord.isEnabled = false
+                        binding.btnMenuExport.isEnabled = false
                     }
                     is ExportState.Success -> {
-                        binding.btnExportPdf.isEnabled = true
-                        binding.btnExportExcel.isEnabled = true
-                        binding.btnExportWord.isEnabled = true
+                        binding.btnMenuExport.isEnabled = true
                         shareFile(state.file)
                         exportViewModel.resetExportState()
                     }
                     is ExportState.Error -> {
-                        binding.btnExportPdf.isEnabled = true
-                        binding.btnExportExcel.isEnabled = true
-                        binding.btnExportWord.isEnabled = true
+                        binding.btnMenuExport.isEnabled = true
                         Toast.makeText(
                             requireContext(),
                             "Ошибка: ${state.message}",
@@ -145,10 +140,30 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
             findNavController().navigate(R.id.startAuditFragment)
         }
 
-        binding.btnEditAudit.setOnClickListener {
+        binding.btnMenuEdit.setOnClickListener {
+            showEditMenu(auditId)
+        }
+
+        binding.btnMenuExport.setOnClickListener {
+            showExportMenu(auditId)
+        }
+    }
+
+    private fun showEditMenu(auditId: Long) {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.sheet_edit_menu, null)
+        dialog.setContentView(sheetView)
+
+        sheetView.findViewById<View>(R.id.btnEditAuditData).setOnClickListener {
+            dialog.dismiss()
+            showEditAuditDialog()
+        }
+
+        sheetView.findViewById<View>(R.id.btnEditCategories).setOnClickListener {
+            dialog.dismiss()
             val categories = arrayOf("1С", "2С", "3С", "4С", "5С")
             AlertDialog.Builder(requireContext())
-                .setTitle("Редактирование аудита")
+                .setTitle("Выберите категорию")
                 .setItems(categories) { _, which ->
                     findNavController().navigate(
                         R.id.categoryFragment,
@@ -162,21 +177,30 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                 .show()
         }
 
-        binding.btnEditAuditData.setOnClickListener {
-            showEditAuditDialog()
-        }
+        dialog.show()
+    }
 
-        binding.btnExportPdf.setOnClickListener {
+    private fun showExportMenu(auditId: Long) {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.sheet_export_menu, null)
+        dialog.setContentView(sheetView)
+
+        sheetView.findViewById<View>(R.id.btnExportPdf).setOnClickListener {
+            dialog.dismiss()
             exportViewModel.exportPdf(requireContext(), auditId)
         }
 
-        binding.btnExportExcel.setOnClickListener {
+        sheetView.findViewById<View>(R.id.btnExportExcel).setOnClickListener {
+            dialog.dismiss()
             exportViewModel.exportExcel(requireContext(), auditId)
         }
 
-        binding.btnExportWord.setOnClickListener {
+        sheetView.findViewById<View>(R.id.btnExportWord).setOnClickListener {
+            dialog.dismiss()
             exportViewModel.exportWord(requireContext(), auditId)
         }
+
+        dialog.show()
     }
 
     private fun showEditAuditDialog() {
@@ -230,7 +254,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                     Toast.makeText(
                         requireContext(),
                         "Заполните все поля",
-                        android.widget.Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT
                     ).show()
                     return@setPositiveButton
                 }
@@ -239,7 +263,7 @@ class SummaryFragment : Fragment(R.layout.fragment_summary) {
                     Toast.makeText(
                         requireContext(),
                         "Данные обновлены",
-                        android.widget.Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT
                     ).show()
                 }
             }
