@@ -57,14 +57,18 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
     }
 
     private val pickPhotoLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            val path = PhotoManager.copyPhotoToAppStorage(requireContext(), it)
-            if (path != null) {
-                currentPhotoUris.add(path)
-                updatePhotoPreview(currentSheetBinding)
+        androidx.activity.result.contract.ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isEmpty()) return@registerForActivityResult
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            uris.forEach { uri ->
+                val path = PhotoManager.copyPhotoToAppStorage(requireContext(), uri)
+                if (path != null) {
+                    currentPhotoUris.add(path)
+                }
             }
+            updatePhotoPreview(currentSheetBinding)
         }
     }
 
