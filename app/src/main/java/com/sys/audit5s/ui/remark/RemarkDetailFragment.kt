@@ -71,7 +71,7 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
                     ContextCompat.getColorStateList(requireContext(), colorRes)
 
                 binding.tvDescription.text = state.remark.description
-                binding.tvExecutor.text = state.remark.executorName
+                binding.tvExecutor.text = state.remark.executorName.ifBlank { "—" }
                 binding.tvDeadline.text = state.remark.deadlineDate.ifEmpty { "Не указан" }
                 binding.tvActualDate.text = state.remark.actualDate ?: "—"
 
@@ -148,13 +148,21 @@ class RemarkDetailFragment : Fragment(R.layout.fragment_remark_detail) {
 
                     binding.btnSavePhotos.visibility = View.VISIBLE
                     binding.btnSavePhotos.setOnClickListener {
-                        viewModel.savePhotosToGallery(requireContext()) { count ->
-                            Toast.makeText(
-                                requireContext(),
-                                "Сохранено фото в галерею: $count",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        // Защита от случайных нажатий: спрашиваем подтверждение
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Сохранить фото в галерею?")
+                            .setMessage("Фото (${state.photos.size} шт.) будут скопированы в галерею телефона.")
+                            .setPositiveButton("Сохранить") { _, _ ->
+                                viewModel.savePhotosToGallery(requireContext()) { count ->
+                                    Toast.makeText(
+                                        requireContext(),
+                                        "Сохранено фото в галерею: $count",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                            .setNegativeButton("Отмена", null)
+                            .show()
                     }
                 } else {
                     binding.cardPhotos.visibility = View.GONE

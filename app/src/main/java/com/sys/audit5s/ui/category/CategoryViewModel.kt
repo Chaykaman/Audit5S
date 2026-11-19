@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sys.audit5s.data.db.entity.QuestionScoreEntity
 import com.sys.audit5s.data.db.entity.RemarkEntity
 import com.sys.audit5s.data.db.entity.RemarkPhotoEntity
+import com.sys.audit5s.data.repository.AuditRepository
 import com.sys.audit5s.data.repository.QuestionScoreRepository
 import com.sys.audit5s.data.repository.RemarkRepository
 import com.sys.audit5s.util.AuditQuestion
@@ -33,7 +34,8 @@ data class RemarkDraftState(
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val questionScoreRepository: QuestionScoreRepository,
-    private val remarkRepository: RemarkRepository
+    private val remarkRepository: RemarkRepository,
+    private val auditRepository: AuditRepository
 ) : ViewModel() {
 
     private val _questions = MutableStateFlow<List<QuestionUiState>>(emptyList())
@@ -153,13 +155,15 @@ class CategoryViewModel @Inject constructor(
             }
 
             if (score < 3 && remarkDescription.isNotBlank()) {
+                // Исполнитель необязателен: если не указан — берём представителя цеха
+                val executor = remarkExecutor.trim().ifEmpty { getWorkshopRepName() }
                 val existing = remarkRepository.getByQuestionScore(scoreId)
                 val remarkId = if (existing != null) {
                     remarkRepository.update(
                         existing.copy(
                             description = remarkDescription,
                             deadlineDate = remarkDeadline,
-                            executorName = remarkExecutor
+                            executorName = executor
                         )
                     )
                     val oldPhotos = remarkRepository.getPhotosByRemark(existing.id)
@@ -173,7 +177,7 @@ class CategoryViewModel @Inject constructor(
                             questionScoreId = scoreId,
                             auditId = auditId,
                             deadlineDate = remarkDeadline,
-                            executorName = remarkExecutor,
+                            executorName = executor,
                             description = remarkDescription
                         )
                     )
@@ -193,6 +197,10 @@ class CategoryViewModel @Inject constructor(
             onDone()
         }
     }
+
+    /** Представитель цеха из шапки аудита — подставляется в мероприятия по умолчанию */
+    suspend fun getWorkshopRepName(): String =
+        auditRepository.getById(auditId)?.workshopRepName?.trim().orEmpty()
 
     suspend fun getRemarkForQuestion(questionNumber: Int): RemarkEntity? {
         val scoreEntity = _questions.value

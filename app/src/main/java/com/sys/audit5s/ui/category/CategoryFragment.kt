@@ -25,7 +25,9 @@ import com.sys.audit5s.databinding.FragmentCategoryBinding
 import com.sys.audit5s.databinding.SheetQuestionDetailBinding
 import com.sys.audit5s.util.PhotoManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Calendar
 
@@ -158,6 +160,9 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                     val photos = viewModel.getPhotosForRemark(existing.id)
                     currentPhotoUris = photos.map { it.photoUri }.toMutableList()
                     updatePhotoPreview(sheetBinding)
+                } else if (sheetBinding.etExecutor.text.isNullOrBlank()) {
+                    // Новое замечание: подставляем представителя цеха
+                    sheetBinding.etExecutor.setText(viewModel.getWorkshopRepName())
                 }
             }
         }
@@ -190,69 +195,14 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         }
 
         sheetBinding.btnSavePhotos.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                var savedCount = 0
-                currentPhotoUris.forEach { photoPath ->
-                    try {
-                        val file = File(photoPath)
-                        if (!file.exists()) return@forEach
-
-                        if (android.os.Build.VERSION.SDK_INT >=
-                            android.os.Build.VERSION_CODES.Q
-                        ) {
-                            val values = android.content.ContentValues().apply {
-                                put(
-                                    android.provider.MediaStore.Images.Media.DISPLAY_NAME,
-                                    "audit_photo_${System.currentTimeMillis()}.jpg"
-                                )
-                                put(
-                                    android.provider.MediaStore.Images.Media.MIME_TYPE,
-                                    "image/jpeg"
-                                )
-                                put(
-                                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
-                                    android.os.Environment.DIRECTORY_PICTURES + "/Audit5S"
-                                )
-                            }
-                            val uri = requireContext().contentResolver.insert(
-                                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                                values
-                            )
-                            uri?.let {
-                                requireContext().contentResolver.openOutputStream(it)
-                                    ?.use { out ->
-                                        file.inputStream().copyTo(out)
-                                    }
-                                savedCount++
-                            }
-                        } else {
-                            val picturesDir = File(
-                                android.os.Environment.getExternalStoragePublicDirectory(
-                                    android.os.Environment.DIRECTORY_PICTURES
-                                ), "Audit5S"
-                            ).apply { mkdirs() }
-                            val dest = File(
-                                picturesDir,
-                                "audit_photo_${System.currentTimeMillis()}.jpg"
-                            )
-                            file.copyTo(dest, overwrite = true)
-                            android.media.MediaScannerConnection.scanFile(
-                                requireContext(),
-                                arrayOf(dest.absolutePath),
-                                null, null
-                            )
-                            savedCount++
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-                Toast.makeText(
-                    requireContext(),
-                    "Сохранено фото в галерею: $savedCount",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            // Защита от случайных нажатий: сначала спрашиваем подтверждение
+            if (currentPhotoUris.isEmpty()) return@setOnClickListener
+            AlertDialog.Builder(requireContext())
+                .setTitle("Сохранить фото в галерею?")
+                .setMessage("Фото (${currentPhotoUris.size} шт.) будут скопированы в галерею телефона.")
+                .setPositiveButton("Сохранить") { _, _ -> savePhotosToGallery() }
+                .setNegativeButton("Отмена", null)
+                .show()
         }
 
         listOf(
@@ -292,10 +242,10 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                 val desc = sheetBinding.etDescription.text.toString().trim()
                 val deadline = sheetBinding.etDeadline.text.toString().trim()
                 val executor = sheetBinding.etExecutor.text.toString().trim()
-                if (desc.isEmpty() || executor.isEmpty()) {
+                if (desc.isEmpty()) {
                     Toast.makeText(
                         requireContext(),
-                        "Заполните все поля замечания",
+                        "Опишите замечание",
                         Toast.LENGTH_SHORT
                     ).show()
                     return@setOnClickListener
@@ -324,6 +274,74 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         }
 
         dialog.show()
+    }
+
+    private fun savePhotosToGallery() {
+        val paths = currentPhotoUris.toList()
+        val ctx = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            val savedCount = withContext(Dispatchers.IO) {
+                var count = 0
+                paths.forEach { photoPath ->
+                    try {
+                        val file = File(photoPath)
+                        if (!file.exists()) return@forEach
+
+                        if (android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.Q
+                        ) {
+                            val values = android.content.ContentValues().apply {
+                                put(
+                                    android.provider.MediaStore.Images.Media.DISPLAY_NAME,
+                                    "audit_photo_${System.currentTimeMillis()}.jpg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.MIME_TYPE,
+                                    "image/jpeg"
+                                )
+                                put(
+                                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                                    android.os.Environment.DIRECTORY_PICTURES + "/Audit5S"
+                                )
+                            }
+                            val uri = ctx.contentResolver.insert(
+                                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                values
+                            )
+                            uri?.let {
+                                ctx.contentResolver.openOutputStream(it)?.use { out ->
+                                    file.inputStream().copyTo(out)
+                                }
+                                count++
+                            }
+                        } else {
+                            val picturesDir = File(
+                                android.os.Environment.getExternalStoragePublicDirectory(
+                                    android.os.Environment.DIRECTORY_PICTURES
+                                ), "Audit5S"
+                            ).apply { mkdirs() }
+                            val dest = File(
+                                picturesDir,
+                                "audit_photo_${System.currentTimeMillis()}.jpg"
+                            )
+                            file.copyTo(dest, overwrite = true)
+                            android.media.MediaScannerConnection.scanFile(
+                                ctx, arrayOf(dest.absolutePath), null, null
+                            )
+                            count++
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                count
+            }
+            Toast.makeText(
+                ctx,
+                "Сохранено фото в галерею: $savedCount",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun launchCamera() {
